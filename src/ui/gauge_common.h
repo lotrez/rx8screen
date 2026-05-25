@@ -14,6 +14,7 @@ static const lv_color_t COLOR_ACCENT = lv_color_hex(0x00DDFF);
 static inline void style_container(lv_obj_t *obj) {
     lv_obj_set_style_bg_color(obj, COLOR_BG, 0);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(obj, 0, 0);
     lv_obj_set_style_radius(obj, 4, 0);
     lv_obj_set_style_pad_all(obj, 6, 0);
 }

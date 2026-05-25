@@ -1,14 +1,14 @@
 #include <lvgl.h>
 #include <math.h>
 #include <src/drivers/sdl/lv_sdl_window.h>
-// #include "ui/rpm_gauge.h"
+#include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
 // #include "ui/water_temp_gauge.h"
 // #include "ui/oil_temp_gauge.h"
 // #include "ui/fuel_gauge.h"
 // #include "ui/voltage_gauge.h"
 
-// static RpmGauge rpm_gauge;
+static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
 // static WaterTempGauge water_temp_gauge;
 // static OilTempGauge oil_temp_gauge;
@@ -22,6 +22,8 @@ static void create_dashboard(lv_obj_t *parent) {
     speed_gauge.create(parent);
     lv_obj_set_size(speed_gauge.get_container(), LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_align(speed_gauge.get_container(), LV_ALIGN_TOP_LEFT, 20, 20);
+
+    rpm_gauge.create(parent);
 
     // --- Old grid layout (preserved for when other gauges return) ---
     // static lv_coord_t col_dsc[] = {LV_PCT(50), LV_PCT(50), LV_GRID_TEMPLATE_LAST};
@@ -63,10 +65,10 @@ static void update_simulation() {
     sim_tick++;
     float t = sim_tick / 30.0f;
 
-    // float rpm = 3500 + sinf(t * 0.5f) * 3000 + sinf(t * 1.3f) * 500;
-    // if (rpm < 800) rpm = 800;
-    // if (rpm > 9000) rpm = 9000;
-    // rpm_gauge.update(rpm);
+    float rpm = 4500 + sinf(t * 0.5f) * 4000 + sinf(t * 1.3f) * 1000;
+    if (rpm < 800) rpm = 800;
+    if (rpm > 11000) rpm = 11000;
+    rpm_gauge.update(rpm);
 
     float speed = 80 + sinf(t * 0.3f) * 60 + sinf(t * 0.7f) * 20;
     if (speed < 0) speed = 0;
