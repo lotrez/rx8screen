@@ -457,36 +457,7 @@
  *-----------*/
 
 /** Enable log module */
-#define LV_USE_LOG 1
-#if LV_USE_LOG
-    #define LV_LOG_LEVEL LV_LOG_LEVEL_TRACE
-
-    #define LV_LOG_PRINTF 1
-
-    /** Set callback to print logs.
-     *  E.g `my_print`. The prototype should be `void my_print(lv_log_level_t level, const char * buf)`.
-     *  Can be overwritten by `lv_log_register_print_cb`. */
-    //#define LV_LOG_PRINT_CB
-
-    /** - 1: Enable printing timestamp;
-     *  - 0: Disable printing timestamp. */
-    #define LV_LOG_USE_TIMESTAMP 1
-
-    /** - 1: Print file and line number of the log;
-     *  - 0: Do not print file and line number of the log. */
-    #define LV_LOG_USE_FILE_LINE 1
-
-    /* Enable/disable LV_LOG_TRACE in modules that produces a huge number of logs. */
-    #define LV_LOG_TRACE_MEM        1   /**< Enable/disable trace logs in memory operations. */
-    #define LV_LOG_TRACE_TIMER      1   /**< Enable/disable trace logs in timer operations. */
-    #define LV_LOG_TRACE_INDEV      1   /**< Enable/disable trace logs in input device operations. */
-    #define LV_LOG_TRACE_DISP_REFR  1   /**< Enable/disable trace logs in display re-draw operations. */
-    #define LV_LOG_TRACE_EVENT      1   /**< Enable/disable trace logs in event dispatch logic. */
-    #define LV_LOG_TRACE_OBJ_CREATE 1   /**< Enable/disable trace logs in object creation (core `obj` creation plus every widget). */
-    #define LV_LOG_TRACE_LAYOUT     1   /**< Enable/disable trace logs in flex- and grid-layout operations. */
-    #define LV_LOG_TRACE_ANIM       1   /**< Enable/disable trace logs in animation logic. */
-    #define LV_LOG_TRACE_CACHE      1   /**< Enable/disable trace logs in cache operations. */
-#endif  /*LV_USE_LOG*/
+#define LV_USE_LOG 0
 
 /*-------------
  * Asserts
@@ -680,17 +651,17 @@
 #define LV_FONT_MONTSERRAT_10 0
 #define LV_FONT_MONTSERRAT_12 0
 #define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_MONTSERRAT_16 0
+#define LV_FONT_MONTSERRAT_16 1
 #define LV_FONT_MONTSERRAT_18 0
-#define LV_FONT_MONTSERRAT_20 0
+#define LV_FONT_MONTSERRAT_20 1
 #define LV_FONT_MONTSERRAT_22 0
 #define LV_FONT_MONTSERRAT_24 0
 #define LV_FONT_MONTSERRAT_26 0
-#define LV_FONT_MONTSERRAT_28 0
+#define LV_FONT_MONTSERRAT_28 1
 #define LV_FONT_MONTSERRAT_30 0
 #define LV_FONT_MONTSERRAT_32 0
 #define LV_FONT_MONTSERRAT_34 0
-#define LV_FONT_MONTSERRAT_36 0
+#define LV_FONT_MONTSERRAT_36 1
 #define LV_FONT_MONTSERRAT_38 0
 #define LV_FONT_MONTSERRAT_40 0
 #define LV_FONT_MONTSERRAT_42 0
