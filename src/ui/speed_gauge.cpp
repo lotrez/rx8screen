@@ -38,7 +38,7 @@ void SpeedGauge::create(lv_obj_t *parent) {
 
         digit_labels[i] = lv_label_create(slot);
         lv_label_set_text(digit_labels[i], "0");
-        lv_obj_set_style_text_color(digit_labels[i], COLOR_ACCENT, 0);
+        lv_obj_set_style_text_color(digit_labels[i], COLOR_PRIMARY, 0);
         lv_obj_set_style_text_font(digit_labels[i], &dseg7_classic_bold_italic_72, 0);
         lv_obj_align(digit_labels[i], LV_ALIGN_CENTER, 0, 0);
     }
@@ -64,6 +64,6 @@ void SpeedGauge::update(float kmh) {
         bool active = (i == 2) || (i == 1 && val >= 10) || (i == 0 && val >= 100);
         buf[0] = '0' + digits[i];
         lv_label_set_text(digit_labels[i], buf);
-        lv_obj_set_style_text_color(digit_labels[i], active ? COLOR_ACCENT : COLOR_DIGIT_OFF, 0);
+        lv_obj_set_style_text_color(digit_labels[i], active ? COLOR_PRIMARY : COLOR_DIGIT_OFF, 0);
     }
 }

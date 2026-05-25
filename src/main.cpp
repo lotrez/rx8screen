@@ -20,7 +20,8 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
     speed_gauge.create(parent);
-    lv_obj_set_size(speed_gauge.get_container(), DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lv_obj_set_size(speed_gauge.get_container(), LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_align(speed_gauge.get_container(), LV_ALIGN_TOP_LEFT, 20, 20);
 
     // --- Old grid layout (preserved for when other gauges return) ---
     // static lv_coord_t col_dsc[] = {LV_PCT(50), LV_PCT(50), LV_GRID_TEMPLATE_LAST};
