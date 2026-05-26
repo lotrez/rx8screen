@@ -198,3 +198,8 @@ src/
 ├── config.h                  # Pin definitions, screen resolution, BT settings
 └── warnings.h                # Threshold definitions for alerts
 ```
+
+## Code Style
+
+- Use descriptive variable names — no single or double letter variables (e.g. no `i`, `j`, `x`, `t`, `r`, `g`, `b`). Use names like `strip_index`, `position`, `red`, `green`, `blue`, etc.
+- Exception: LVGL API struct fields and function parameters that require short names (e.g. `coords.x1`) are fine as-is.

@@ -11,207 +11,188 @@ static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x1A1A1A);
 static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
 static const lv_color_t COLOR_BORDER = lv_color_hex(0x00AA30);
 
-static const int W = DISPLAY_WIDTH;
-static const int H = DISPLAY_HEIGHT;
-static const int BAND_PX = 50;
-static const float HALF_BAND = BAND_PX / 2.0f;
-static const float R = 100.0f;
-// Margin from screen edges so the band doesn't touch the borders
+static const int SCREEN_WIDTH = DISPLAY_WIDTH;
+static const int SCREEN_HEIGHT = DISPLAY_HEIGHT;
+static const int BAND_THICKNESS = 50;
+static const float HALF_BAND = BAND_THICKNESS / 2.0f;
+static const float CORNER_RADIUS = 100.0f;
 static const int MARGIN = 10;
 
-// Band outer edges are inset by MARGIN from screen edges
-// Band center-line arc center
-static const float CL_X = (W - MARGIN) - HALF_BAND - R + 1;
-static const float CL_Y = (H - MARGIN) - HALF_BAND - R + 2;
+static const float ARC_CENTER_X = (SCREEN_WIDTH - MARGIN) - HALF_BAND - CORNER_RADIUS + 1;
+static const float ARC_CENTER_Y = (SCREEN_HEIGHT - MARGIN) - HALF_BAND - CORNER_RADIUS + 2;
 
-// Path lengths along the center line
-static const float PATH_BOTTOM = CL_X - MARGIN;
-static const float PATH_ARC = R * (float)M_PI / 2.0f;
-static const float PATH_RIGHT = CL_Y - MARGIN;
-static const float PATH_TOTAL = PATH_BOTTOM + PATH_ARC + PATH_RIGHT;
+static const float PATH_BOTTOM_LEN = ARC_CENTER_X - MARGIN;
+static const float PATH_ARC_LEN = CORNER_RADIUS * (float)M_PI / 2.0f;
+static const float PATH_RIGHT_LEN = ARC_CENTER_Y - MARGIN;
+static const float PATH_TOTAL_LEN = PATH_BOTTOM_LEN + PATH_ARC_LEN + PATH_RIGHT_LEN;
 
-static const int BORDER_W = 3;
+static const int BORDER_THICKNESS = 3;
 
-static lv_color_t seg_gradient(float t) {
-    uint8_t r, g, b;
-    if (t < 0.5f) {
-        float f = t / 0.5f;
-        r = (uint8_t)(0x00 + (0xFF - 0x00) * f);
-        g = (uint8_t)(0xFF - (0xFF - 0xAA) * f);
-        b = (uint8_t)(0x41 * (1.0f - f));
+// Returns gradient color from green (position=0) through amber (0.5) to red (1)
+static lv_color_t gradient_color(float position) {
+    uint8_t red, green, blue;
+    if (position < 0.5f) {
+        float fraction = position / 0.5f;
+        red = (uint8_t)(0x00 + (0xFF - 0x00) * fraction);
+        green = (uint8_t)(0xFF - (0xFF - 0xAA) * fraction);
+        blue = (uint8_t)(0x41 * (1.0f - fraction));
     } else {
-        float f = (t - 0.5f) / 0.5f;
-        r = 0xFF;
-        g = (uint8_t)(0xAA - (0xAA - 0x22) * f);
-        b = (uint8_t)(0x22 * f);
+        float fraction = (position - 0.5f) / 0.5f;
+        red = 0xFF;
+        green = (uint8_t)(0xAA - (0xAA - 0x22) * fraction);
+        blue = (uint8_t)(0x22 * fraction);
     }
-    return lv_color_hex(((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+    return lv_color_hex(((uint32_t)red << 16) | ((uint32_t)green << 8) | blue);
 }
 
 // Draw the entire band + border using LVGL draw primitives on the layer.
 // Called every frame via LV_EVENT_DRAW_MAIN.
-static void band_draw_cb(lv_event_t *e) {
-    lv_layer_t *layer = lv_event_get_layer(e);
-    RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(e);
-    float active_t = gauge->get_active_t();
+static void band_draw_cb(lv_event_t *event) {
+    lv_layer_t *layer = lv_event_get_layer(event);
+    RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(event);
+    float active_position = gauge->get_active_t();
 
     // --- Draw bottom flat band as vertical strips ---
-    int num_strips = 200;
-    float strip_w = PATH_BOTTOM / num_strips;
+    int num_bottom_strips = 200;
+    float bottom_strip_width = PATH_BOTTOM_LEN / num_bottom_strips;
 
-    for (int i = 0; i < num_strips; i++) {
-        float t0 = (i * strip_w) / PATH_TOTAL;
-        float t1 = ((i + 1) * strip_w) / PATH_TOTAL;
-        float t_mid = (t0 + t1) * 0.5f;
+    for (int strip = 0; strip < num_bottom_strips; strip++) {
+        float position_start = (strip * bottom_strip_width) / PATH_TOTAL_LEN;
+        float position_end = ((strip + 1) * bottom_strip_width) / PATH_TOTAL_LEN;
+        float position_mid = (position_start + position_end) * 0.5f;
 
-        lv_color_t color = (t_mid <= active_t) ? seg_gradient(t_mid) : COLOR_SEG_OFF;
+        lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
 
         lv_area_t coords;
-        coords.x1 = (lv_coord_t)(MARGIN + i * strip_w);
-        coords.x2 = (lv_coord_t)(MARGIN + (i + 1) * strip_w);
-        coords.y1 = H - MARGIN - BAND_PX;
-        coords.y2 = H - MARGIN;
+        coords.x1 = (lv_coord_t)(MARGIN + strip * bottom_strip_width);
+        coords.x2 = (lv_coord_t)(MARGIN + (strip + 1) * bottom_strip_width);
+        coords.y1 = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+        coords.y2 = SCREEN_HEIGHT - MARGIN;
 
-        lv_draw_rect_dsc_t rect_dsc;
-        lv_draw_rect_dsc_init(&rect_dsc);
-        rect_dsc.bg_color = color;
-        lv_draw_rect(layer, &rect_dsc, &coords);
+        lv_draw_rect_dsc_t rect_descriptor;
+        lv_draw_rect_dsc_init(&rect_descriptor);
+        rect_descriptor.bg_color = strip_color;
+        lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
     // --- Draw right flat band as horizontal strips ---
-    int num_strips_r = 200;
-    float strip_h = PATH_RIGHT / num_strips_r;
+    int num_right_strips = 200;
+    float right_strip_height = PATH_RIGHT_LEN / num_right_strips;
 
-    for (int i = 0; i < num_strips_r; i++) {
-        float dist_from_top = i * strip_h;
-        float y_pos = CL_Y - dist_from_top - strip_h;
-        float path_pos = PATH_BOTTOM + PATH_ARC + dist_from_top;
-        float t0 = path_pos / PATH_TOTAL;
-        float t1 = (path_pos + strip_h) / PATH_TOTAL;
-        float t_mid = (t0 + t1) * 0.5f;
+    for (int strip = 0; strip < num_right_strips; strip++) {
+        float distance_from_top = strip * right_strip_height;
+        float strip_y_pos = ARC_CENTER_Y - distance_from_top - right_strip_height;
+        float path_distance = PATH_BOTTOM_LEN + PATH_ARC_LEN + distance_from_top;
+        float position_start = path_distance / PATH_TOTAL_LEN;
+        float position_end = (path_distance + right_strip_height) / PATH_TOTAL_LEN;
+        float position_mid = (position_start + position_end) * 0.5f;
 
-        lv_color_t color = (t_mid <= active_t) ? seg_gradient(t_mid) : COLOR_SEG_OFF;
+        lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
 
         lv_area_t coords;
-        coords.x1 = W - MARGIN - BAND_PX;
-        coords.x2 = W - MARGIN;
-        coords.y1 = (lv_coord_t)y_pos;
-        coords.y2 = (lv_coord_t)(y_pos + strip_h);
+        coords.x1 = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+        coords.x2 = SCREEN_WIDTH - MARGIN;
+        coords.y1 = (lv_coord_t)strip_y_pos;
+        coords.y2 = (lv_coord_t)(strip_y_pos + right_strip_height);
 
-        lv_draw_rect_dsc_t rect_dsc;
-        lv_draw_rect_dsc_init(&rect_dsc);
-        rect_dsc.bg_color = color;
-        lv_draw_rect(layer, &rect_dsc, &coords);
+        lv_draw_rect_dsc_t rect_descriptor;
+        lv_draw_rect_dsc_init(&rect_descriptor);
+        rect_descriptor.bg_color = strip_color;
+        lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
-    // --- Draw corner arc band as angular segments ---
-    int num_arc_segs = 60;
-    float d_angle = 90.0f / num_arc_segs;
+    // --- Draw corner arc band using overlapping thick arcs for smooth edges ---
+    int num_arc_segments = 45;
+    float arc_segment_angle = 90.0f / num_arc_segments;
 
-    for (int i = 0; i < num_arc_segs; i++) {
-        float a0 = i * d_angle;
-        float a1 = (i + 1) * d_angle;
-        float a_mid = (a0 + a1) * 0.5f;
+    for (int seg = 0; seg < num_arc_segments; seg++) {
+        float angle_start = seg * arc_segment_angle - arc_segment_angle * 0.5f;
+        float angle_end = (seg + 1) * arc_segment_angle + arc_segment_angle * 0.5f;
+        if (angle_start < -15) angle_start = -15;
+        if (angle_end > 105) angle_end = 105;
+        float angle_mid = (seg + 0.5f) * arc_segment_angle;
 
-        float arc_frac = 1.0f - a_mid / 90.0f;
-        float t = (PATH_BOTTOM + arc_frac * PATH_ARC) / PATH_TOTAL;
+        float arc_fraction = 1.0f - angle_mid / 90.0f;
+        float gradient_position = (PATH_BOTTOM_LEN + arc_fraction * PATH_ARC_LEN) / PATH_TOTAL_LEN;
 
-        lv_color_t color = (t <= active_t) ? seg_gradient(t) : COLOR_SEG_OFF;
+        lv_color_t seg_color = (gradient_position <= active_position) ? gradient_color(gradient_position) : COLOR_SEG_OFF;
 
-        float rad_mid = a_mid * (float)M_PI / 180.0f;
-
-        // Draw this arc segment as a small filled trapezoid (approximated as rect)
-        float inner_r = R - HALF_BAND;
-        float outer_r = R + HALF_BAND;
-        float mid_r = R;
-        float mx = CL_X + mid_r * cosf(rad_mid);
-        float my = CL_Y + mid_r * sinf(rad_mid);
-        float seg_arc_len = d_angle * (float)M_PI / 180.0f * mid_r;
-        float half_len = seg_arc_len * 0.5f;
-
-        float dx = -sinf(rad_mid);
-        float dy = cosf(rad_mid);
-
-        lv_point_precise_t pts[4] = {
-            { mx + dx * half_len + cosf(rad_mid) * inner_r - mx, my + dy * half_len + sinf(rad_mid) * inner_r - my },
-            { mx - dx * half_len + cosf(rad_mid) * inner_r - mx, my - dy * half_len + sinf(rad_mid) * inner_r - my },
-            { mx - dx * half_len + cosf(rad_mid) * outer_r - mx, my - dy * half_len + sinf(rad_mid) * outer_r - my },
-            { mx + dx * half_len + cosf(rad_mid) * outer_r - mx, my + dy * half_len + sinf(rad_mid) * outer_r - my },
-        };
-
-        lv_draw_rect_dsc_t rect_dsc;
-        lv_draw_rect_dsc_init(&rect_dsc);
-        rect_dsc.bg_color = color;
-        // Use a small rect approximation centered on the arc segment
-        lv_area_t coords;
-        float rx = mx - half_len;
-        float ry = my - HALF_BAND;
-        coords.x1 = (lv_coord_t)(CL_X + inner_r * cosf(a0 * (float)M_PI / 180.0f));
-        coords.y1 = (lv_coord_t)(CL_Y + inner_r * sinf(a0 * (float)M_PI / 180.0f));
-        coords.x2 = (lv_coord_t)(CL_X + outer_r * cosf(a1 * (float)M_PI / 180.0f));
-        coords.y2 = (lv_coord_t)(CL_Y + outer_r * sinf(a1 * (float)M_PI / 180.0f));
-        // Normalize area
-        if (coords.x1 > coords.x2) { lv_coord_t tmp = coords.x1; coords.x1 = coords.x2; coords.x2 = tmp; }
-        if (coords.y1 > coords.y2) { lv_coord_t tmp = coords.y1; coords.y1 = coords.y2; coords.y2 = tmp; }
-        lv_draw_rect(layer, &rect_dsc, &coords);
+        lv_draw_arc_dsc_t arc_fill;
+        lv_draw_arc_dsc_init(&arc_fill);
+        arc_fill.color = seg_color;
+        arc_fill.width = BAND_THICKNESS;
+        arc_fill.center.x = (int32_t)ARC_CENTER_X;
+        arc_fill.center.y = (int32_t)ARC_CENTER_Y;
+        arc_fill.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
+        arc_fill.start_angle = (lv_value_precise_t)angle_start;
+        arc_fill.end_angle = (lv_value_precise_t)angle_end;
+        lv_draw_arc(layer, &arc_fill);
     }
 
     // --- Border: lines for flat sides, arcs for corner ---
 
-    lv_draw_line_dsc_t line_dsc;
-    lv_draw_line_dsc_init(&line_dsc);
-    line_dsc.color = COLOR_BORDER;
-    line_dsc.width = BORDER_W;
+    lv_draw_line_dsc_t line_descriptor;
+    lv_draw_line_dsc_init(&line_descriptor);
+    line_descriptor.color = COLOR_BORDER;
+    line_descriptor.width = BORDER_THICKNESS;
 
     // Inner bottom line
-    line_dsc.p1.x = MARGIN; line_dsc.p1.y = H - MARGIN - BAND_PX;
-    line_dsc.p2.x = (lv_value_precise_t)CL_X; line_dsc.p2.y = H - MARGIN - BAND_PX;
-    lv_draw_line(layer, &line_dsc);
+    line_descriptor.p1.x = MARGIN;
+    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    lv_draw_line(layer, &line_descriptor);
 
     // Inner right line
-    line_dsc.p1.x = W - MARGIN - BAND_PX; line_dsc.p1.y = (lv_value_precise_t)CL_Y;
-    line_dsc.p2.x = W - MARGIN - BAND_PX; line_dsc.p2.y = MARGIN;
-    lv_draw_line(layer, &line_dsc);
+    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    line_descriptor.p2.y = MARGIN;
+    lv_draw_line(layer, &line_descriptor);
 
     // Outer bottom line
-    line_dsc.p1.x = MARGIN; line_dsc.p1.y = H - MARGIN;
-    line_dsc.p2.x = (lv_value_precise_t)CL_X; line_dsc.p2.y = H - MARGIN;
-    lv_draw_line(layer, &line_dsc);
+    line_descriptor.p1.x = MARGIN;
+    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN;
+    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN;
+    lv_draw_line(layer, &line_descriptor);
 
     // Outer right line
-    line_dsc.p1.x = W - MARGIN; line_dsc.p1.y = (lv_value_precise_t)CL_Y;
-    line_dsc.p2.x = W - MARGIN; line_dsc.p2.y = MARGIN;
-    lv_draw_line(layer, &line_dsc);
+    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN;
+    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN;
+    line_descriptor.p2.y = MARGIN;
+    lv_draw_line(layer, &line_descriptor);
 
     // Inner corner arc
-    lv_draw_arc_dsc_t arc_dsc;
-    lv_draw_arc_dsc_init(&arc_dsc);
-    arc_dsc.color = COLOR_BORDER;
-    arc_dsc.width = BORDER_W;
-    arc_dsc.center.x = (int32_t)CL_X;
-    arc_dsc.center.y = (int32_t)CL_Y;
-    arc_dsc.radius = (uint16_t)(R - HALF_BAND);
-    arc_dsc.start_angle = 0;
-    arc_dsc.end_angle = 90;
-    lv_draw_arc(layer, &arc_dsc);
+    lv_draw_arc_dsc_t inner_arc_border;
+    lv_draw_arc_dsc_init(&inner_arc_border);
+    inner_arc_border.color = COLOR_BORDER;
+    inner_arc_border.width = BORDER_THICKNESS;
+    inner_arc_border.center.x = (int32_t)ARC_CENTER_X;
+    inner_arc_border.center.y = (int32_t)ARC_CENTER_Y;
+    inner_arc_border.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND);
+    inner_arc_border.start_angle = 0;
+    inner_arc_border.end_angle = 90;
+    lv_draw_arc(layer, &inner_arc_border);
 
     // Outer corner arc
-    lv_draw_arc_dsc_t oarc_dsc;
-    lv_draw_arc_dsc_init(&oarc_dsc);
-    oarc_dsc.color = COLOR_BORDER;
-    oarc_dsc.width = BORDER_W;
-    oarc_dsc.center.x = (int32_t)CL_X;
-    oarc_dsc.center.y = (int32_t)CL_Y;
-    oarc_dsc.radius = (uint16_t)(R + HALF_BAND);
-    oarc_dsc.start_angle = 0;
-    oarc_dsc.end_angle = 90;
-    lv_draw_arc(layer, &oarc_dsc);
+    lv_draw_arc_dsc_t outer_arc_border;
+    lv_draw_arc_dsc_init(&outer_arc_border);
+    outer_arc_border.color = COLOR_BORDER;
+    outer_arc_border.width = BORDER_THICKNESS;
+    outer_arc_border.center.x = (int32_t)ARC_CENTER_X;
+    outer_arc_border.center.y = (int32_t)ARC_CENTER_Y;
+    outer_arc_border.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
+    outer_arc_border.start_angle = 0;
+    outer_arc_border.end_angle = 90;
+    lv_draw_arc(layer, &outer_arc_border);
 }
 
 void RpmGauge::create(lv_obj_t *parent) {
     container = lv_obj_create(parent);
     lv_obj_remove_style_all(container);
-    lv_obj_set_size(container, W, H);
+    lv_obj_set_size(container, SCREEN_WIDTH, SCREEN_HEIGHT);
     lv_obj_set_pos(container, 0, 0);
     lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -225,24 +206,24 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_BOTTOM_LEFT, 30, -(lv_coord_t)(BAND_PX + MARGIN + 20));
+    lv_obj_align(digit_row, LV_ALIGN_BOTTOM_LEFT, 30, -(lv_coord_t)(BAND_THICKNESS + MARGIN + 20));
 
-    for (int d = 0; d < 5; d++) {
+    for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
         lv_obj_remove_style_all(slot);
         lv_obj_set_size(slot, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
         lv_obj_clear_flag(slot, LV_OBJ_FLAG_SCROLLABLE);
 
-        ghost_labels[d] = lv_label_create(slot);
-        lv_label_set_text(ghost_labels[d], "8");
-        lv_obj_set_style_text_color(ghost_labels[d], COLOR_DIGIT_OFF, 0);
-        lv_obj_set_style_text_font(ghost_labels[d], &dseg7_classic_bold_italic_72, 0);
+        ghost_labels[digit] = lv_label_create(slot);
+        lv_label_set_text(ghost_labels[digit], "8");
+        lv_obj_set_style_text_color(ghost_labels[digit], COLOR_DIGIT_OFF, 0);
+        lv_obj_set_style_text_font(ghost_labels[digit], &dseg7_classic_bold_italic_72, 0);
 
-        digit_labels[d] = lv_label_create(slot);
-        lv_label_set_text(digit_labels[d], "0");
-        lv_obj_set_style_text_color(digit_labels[d], COLOR_ACCENT, 0);
-        lv_obj_set_style_text_font(digit_labels[d], &dseg7_classic_bold_italic_72, 0);
-        lv_obj_align(digit_labels[d], LV_ALIGN_CENTER, 0, 0);
+        digit_labels[digit] = lv_label_create(slot);
+        lv_label_set_text(digit_labels[digit], "0");
+        lv_obj_set_style_text_color(digit_labels[digit], COLOR_ACCENT, 0);
+        lv_obj_set_style_text_font(digit_labels[digit], &dseg7_classic_bold_italic_72, 0);
+        lv_obj_align(digit_labels[digit], LV_ALIGN_CENTER, 0, 0);
     }
 
     unit_label = lv_label_create(container);
@@ -257,27 +238,29 @@ void RpmGauge::update(float rpm) {
     if (active_t > 1.0f) active_t = 1.0f;
     if (active_t < 0.0f) active_t = 0.0f;
 
-    int val = (int)rpm;
-    if (val > 99999) val = 99999;
-    if (val < 0) val = 0;
+    int rpm_value = (int)rpm;
+    if (rpm_value > 99999) rpm_value = 99999;
+    if (rpm_value < 0) rpm_value = 0;
 
     int digits[5];
-    digits[0] = (val / 10000) % 10;
-    digits[1] = (val / 1000) % 10;
-    digits[2] = (val / 100) % 10;
-    digits[3] = (val / 10) % 10;
-    digits[4] = val % 10;
+    digits[0] = (rpm_value / 10000) % 10;
+    digits[1] = (rpm_value / 1000) % 10;
+    digits[2] = (rpm_value / 100) % 10;
+    digits[3] = (rpm_value / 10) % 10;
+    digits[4] = rpm_value % 10;
 
-    char buf[2] = "0";
-    float rpm_t = rpm / RPM_MAX;
-    if (rpm_t > 1.0f) rpm_t = 1.0f;
-    lv_color_t val_color = seg_gradient(rpm_t);
-    for (int d = 0; d < 5; d++) {
-        bool on = (d == 4) || (d == 3 && val >= 10) || (d == 2 && val >= 100)
-                || (d == 1 && val >= 1000) || (d == 0 && val >= 10000);
-        buf[0] = '0' + digits[d];
-        lv_label_set_text(digit_labels[d], buf);
-        lv_obj_set_style_text_color(digit_labels[d], on ? val_color : COLOR_DIGIT_OFF, 0);
+    char digit_buf[2] = "0";
+    float rpm_position = rpm / RPM_MAX;
+    if (rpm_position > 1.0f) rpm_position = 1.0f;
+    lv_color_t active_color = gradient_color(rpm_position);
+    for (int digit = 0; digit < 5; digit++) {
+        bool is_active = (digit == 4) || (digit == 3 && rpm_value >= 10)
+                       || (digit == 2 && rpm_value >= 100)
+                       || (digit == 1 && rpm_value >= 1000)
+                       || (digit == 0 && rpm_value >= 10000);
+        digit_buf[0] = '0' + digits[digit];
+        lv_label_set_text(digit_labels[digit], digit_buf);
+        lv_obj_set_style_text_color(digit_labels[digit], is_active ? active_color : COLOR_DIGIT_OFF, 0);
     }
 
     lv_obj_invalidate(container);
