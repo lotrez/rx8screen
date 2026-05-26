@@ -5,11 +5,13 @@
 static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
 
 void SpeedGauge::create(lv_obj_t *parent) {
+    // container
     container = lv_obj_create(parent);
     style_container(container);
     lv_obj_set_style_border_width(container, 0, 0);
     lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
+    // texte
     lv_obj_t *digit_row = lv_obj_create(container);
     lv_obj_remove_style_all(digit_row);
     lv_obj_set_size(digit_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -36,11 +38,12 @@ void SpeedGauge::create(lv_obj_t *parent) {
         lv_obj_align(digit_labels[i], LV_ALIGN_CENTER, 0, 0);
     }
 
+    // texte
     unit_label = lv_label_create(container);
     lv_label_set_text(unit_label, "km/h");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(unit_label, &orbitron_bold_20, 0);
-    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 8, -14);
+    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 8, 6);
 }
 
 void SpeedGauge::update(float kmh) {

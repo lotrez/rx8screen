@@ -63,7 +63,7 @@ static uint32_t sim_tick = 0;
 
 static void update_simulation() {
     sim_tick++;
-    float t = sim_tick / 30.0f;
+    float t = sim_tick / 120.0f;
 
     float rpm = 4500 + sinf(t * 0.5f) * 4000 + sinf(t * 1.3f) * 1000;
     if (rpm < 800) rpm = 800;
