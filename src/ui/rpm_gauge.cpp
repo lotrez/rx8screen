@@ -136,6 +136,20 @@ static void band_draw_cb(lv_event_t *event) {
     line_descriptor.color = COLOR_BORDER;
     line_descriptor.width = BORDER_THICKNESS;
 
+    // Start cap: vertical line at the left end of the bottom band
+    line_descriptor.p1.x = MARGIN;
+    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    line_descriptor.p2.x = MARGIN;
+    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN;
+    lv_draw_line(layer, &line_descriptor);
+
+    // End cap: horizontal line at the top end of the right band
+    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    line_descriptor.p1.y = MARGIN;
+    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN;
+    line_descriptor.p2.y = MARGIN;
+    lv_draw_line(layer, &line_descriptor);
+
     // Inner bottom line
     line_descriptor.p1.x = MARGIN;
     line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
