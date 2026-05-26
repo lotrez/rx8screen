@@ -18,8 +18,8 @@ static const float HALF_BAND = BAND_THICKNESS / 2.0f;
 static const float CORNER_RADIUS = 100.0f;
 static const int MARGIN = 10;
 
-static const float ARC_CENTER_X = (SCREEN_WIDTH - MARGIN) - HALF_BAND - CORNER_RADIUS + 1;
-static const float ARC_CENTER_Y = (SCREEN_HEIGHT - MARGIN) - HALF_BAND - CORNER_RADIUS + 2;
+static const float ARC_CENTER_X = (SCREEN_WIDTH - MARGIN) - HALF_BAND - CORNER_RADIUS;
+static const float ARC_CENTER_Y = (SCREEN_HEIGHT - MARGIN) - HALF_BAND - CORNER_RADIUS;
 
 static const float PATH_BOTTOM_LEN = ARC_CENTER_X - MARGIN;
 static const float PATH_ARC_LEN = CORNER_RADIUS * (float)M_PI / 2.0f;
@@ -27,6 +27,7 @@ static const float PATH_RIGHT_LEN = ARC_CENTER_Y - MARGIN;
 static const float PATH_TOTAL_LEN = PATH_BOTTOM_LEN + PATH_ARC_LEN + PATH_RIGHT_LEN;
 
 static const int BORDER_THICKNESS = 3;
+static const int FILL_INSET = 2;
 
 // Returns gradient color from green (position=0) through amber (0.5) to red (1)
 static lv_color_t gradient_color(float position) {
@@ -52,22 +53,29 @@ static void band_draw_cb(lv_event_t *event) {
     RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(event);
     float active_position = gauge->get_active_t();
 
+    int fill_y_top = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS + BORDER_THICKNESS + FILL_INSET;
+    int fill_y_bottom = SCREEN_HEIGHT - MARGIN - BORDER_THICKNESS - FILL_INSET;
+
     // --- Draw bottom flat band as vertical strips ---
     int num_bottom_strips = 200;
-    float bottom_strip_width = PATH_BOTTOM_LEN / num_bottom_strips;
+    float fill_x_start = MARGIN + BORDER_THICKNESS + FILL_INSET;
+    float fill_x_end = ARC_CENTER_X + 3;
+    float bottom_total_width = fill_x_end - fill_x_start;
+    float bottom_strip_width = bottom_total_width / num_bottom_strips;
 
     for (int strip = 0; strip < num_bottom_strips; strip++) {
-        float position_start = (strip * bottom_strip_width) / PATH_TOTAL_LEN;
-        float position_end = ((strip + 1) * bottom_strip_width) / PATH_TOTAL_LEN;
-        float position_mid = (position_start + position_end) * 0.5f;
+        float raw_x1 = fill_x_start + strip * bottom_strip_width;
+        float raw_x2 = fill_x_start + (strip + 1) * bottom_strip_width;
+        if (strip == num_bottom_strips - 1) raw_x2 = fill_x_end;
 
+        float position_mid = ((raw_x1 + raw_x2) * 0.5f - MARGIN) / PATH_TOTAL_LEN;
         lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
 
         lv_area_t coords;
-        coords.x1 = (lv_coord_t)(MARGIN + strip * bottom_strip_width);
-        coords.x2 = (lv_coord_t)(MARGIN + (strip + 1) * bottom_strip_width);
-        coords.y1 = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-        coords.y2 = SCREEN_HEIGHT - MARGIN;
+        coords.x1 = (lv_coord_t)floorf(raw_x1);
+        coords.x2 = (lv_coord_t)ceilf(raw_x2);
+        coords.y1 = fill_y_top;
+        coords.y2 = fill_y_bottom;
 
         lv_draw_rect_dsc_t rect_descriptor;
         lv_draw_rect_dsc_init(&rect_descriptor);
@@ -77,23 +85,29 @@ static void band_draw_cb(lv_event_t *event) {
 
     // --- Draw right flat band as horizontal strips ---
     int num_right_strips = 200;
-    float right_strip_height = PATH_RIGHT_LEN / num_right_strips;
+    float fill_x_left = SCREEN_WIDTH - MARGIN - BAND_THICKNESS + BORDER_THICKNESS + FILL_INSET;
+    float fill_x_right = SCREEN_WIDTH - MARGIN - BORDER_THICKNESS - FILL_INSET;
+    float fill_y_bottom_arc = ARC_CENTER_Y + 3;
+    float fill_y_top_end = MARGIN + BORDER_THICKNESS + FILL_INSET;
+    float right_total_height = fill_y_bottom_arc - fill_y_top_end;
+    float right_strip_height = right_total_height / num_right_strips;
 
     for (int strip = 0; strip < num_right_strips; strip++) {
-        float distance_from_top = strip * right_strip_height;
-        float strip_y_pos = ARC_CENTER_Y - distance_from_top - right_strip_height;
-        float path_distance = PATH_BOTTOM_LEN + PATH_ARC_LEN + distance_from_top;
-        float position_start = path_distance / PATH_TOTAL_LEN;
-        float position_end = (path_distance + right_strip_height) / PATH_TOTAL_LEN;
-        float position_mid = (position_start + position_end) * 0.5f;
+        float raw_y2 = fill_y_bottom_arc - strip * right_strip_height;
+        float raw_y1 = fill_y_bottom_arc - (strip + 1) * right_strip_height;
+        if (strip == num_right_strips - 1) raw_y1 = fill_y_top_end;
+
+        float distance_from_arc_start = strip * right_strip_height;
+        float path_distance = PATH_BOTTOM_LEN + PATH_ARC_LEN + distance_from_arc_start + right_strip_height * 0.5f;
+        float position_mid = path_distance / PATH_TOTAL_LEN;
 
         lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
 
         lv_area_t coords;
-        coords.x1 = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-        coords.x2 = SCREEN_WIDTH - MARGIN;
-        coords.y1 = (lv_coord_t)strip_y_pos;
-        coords.y2 = (lv_coord_t)(strip_y_pos + right_strip_height);
+        coords.x1 = fill_x_left;
+        coords.x2 = fill_x_right;
+        coords.y1 = (lv_coord_t)floorf(raw_y1);
+        coords.y2 = (lv_coord_t)ceilf(raw_y2);
 
         lv_draw_rect_dsc_t rect_descriptor;
         lv_draw_rect_dsc_init(&rect_descriptor);
@@ -102,28 +116,48 @@ static void band_draw_cb(lv_event_t *event) {
     }
 
     // --- Draw corner arc band using overlapping thick arcs for smooth edges ---
+    int arc_fill_width = BAND_THICKNESS - 2 * (BORDER_THICKNESS + FILL_INSET);
+    // LVGL renders thick arcs with outer edge at given radius, extending inward by width.
+    // To align with flat bands, outer edge must reach flat fill outer edge.
+    int arc_fill_radius = (int)(CORNER_RADIUS + HALF_BAND - BORDER_THICKNESS - FILL_INSET);
+
+    // Base arc layer - single continuous call to avoid any gaps
+    {
+        lv_draw_arc_dsc_t base_arc;
+        lv_draw_arc_dsc_init(&base_arc);
+        base_arc.color = COLOR_SEG_OFF;
+        base_arc.width = arc_fill_width;
+        base_arc.center.x = (int32_t)ARC_CENTER_X;
+        base_arc.center.y = (int32_t)ARC_CENTER_Y;
+        base_arc.radius = (uint16_t)arc_fill_radius;
+        base_arc.start_angle = 0;
+        base_arc.end_angle = 90;
+        lv_draw_arc(layer, &base_arc);
+    }
+
+    // Gradient overlay segments on top of base
     int num_arc_segments = 45;
     float arc_segment_angle = 90.0f / num_arc_segments;
 
     for (int seg = 0; seg < num_arc_segments; seg++) {
-        float angle_start = seg * arc_segment_angle - arc_segment_angle * 0.5f;
-        float angle_end = (seg + 1) * arc_segment_angle + arc_segment_angle * 0.5f;
-        if (angle_start < -15) angle_start = -15;
-        if (angle_end > 105) angle_end = 105;
         float angle_mid = (seg + 0.5f) * arc_segment_angle;
-
         float arc_fraction = 1.0f - angle_mid / 90.0f;
         float gradient_position = (PATH_BOTTOM_LEN + arc_fraction * PATH_ARC_LEN) / PATH_TOTAL_LEN;
 
-        lv_color_t seg_color = (gradient_position <= active_position) ? gradient_color(gradient_position) : COLOR_SEG_OFF;
+        if (gradient_position > active_position) continue;
+
+        lv_color_t seg_color = gradient_color(gradient_position);
+
+        float angle_start = seg * arc_segment_angle;
+        float angle_end = (seg + 1) * arc_segment_angle;
 
         lv_draw_arc_dsc_t arc_fill;
         lv_draw_arc_dsc_init(&arc_fill);
         arc_fill.color = seg_color;
-        arc_fill.width = BAND_THICKNESS;
+        arc_fill.width = arc_fill_width;
         arc_fill.center.x = (int32_t)ARC_CENTER_X;
         arc_fill.center.y = (int32_t)ARC_CENTER_Y;
-        arc_fill.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
+        arc_fill.radius = (uint16_t)arc_fill_radius;
         arc_fill.start_angle = (lv_value_precise_t)angle_start;
         arc_fill.end_angle = (lv_value_precise_t)angle_end;
         lv_draw_arc(layer, &arc_fill);
@@ -150,30 +184,30 @@ static void band_draw_cb(lv_event_t *event) {
     line_descriptor.p2.y = MARGIN;
     lv_draw_line(layer, &line_descriptor);
 
-    // Inner bottom line
+    // Inner bottom line (extend past ARC_CENTER to overlap with arc border)
     line_descriptor.p1.x = MARGIN;
     line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    line_descriptor.p2.x = (lv_value_precise_t)(ARC_CENTER_X + 5);
     line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
     lv_draw_line(layer, &line_descriptor);
 
-    // Inner right line
+    // Inner right line (extend past ARC_CENTER to overlap with arc border)
     line_descriptor.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    line_descriptor.p1.y = (lv_value_precise_t)(ARC_CENTER_Y + 5);
     line_descriptor.p2.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
     line_descriptor.p2.y = MARGIN;
     lv_draw_line(layer, &line_descriptor);
 
-    // Outer bottom line
+    // Outer bottom line (extend past ARC_CENTER to overlap with arc border)
     line_descriptor.p1.x = MARGIN;
     line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN;
-    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    line_descriptor.p2.x = (lv_value_precise_t)(ARC_CENTER_X + 5);
     line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN;
     lv_draw_line(layer, &line_descriptor);
 
-    // Outer right line
+    // Outer right line (extend past ARC_CENTER to overlap with arc border)
     line_descriptor.p1.x = SCREEN_WIDTH - MARGIN;
-    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    line_descriptor.p1.y = (lv_value_precise_t)(ARC_CENTER_Y + 5);
     line_descriptor.p2.x = SCREEN_WIDTH - MARGIN;
     line_descriptor.p2.y = MARGIN;
     lv_draw_line(layer, &line_descriptor);
@@ -185,7 +219,7 @@ static void band_draw_cb(lv_event_t *event) {
     inner_arc_border.width = BORDER_THICKNESS;
     inner_arc_border.center.x = (int32_t)ARC_CENTER_X;
     inner_arc_border.center.y = (int32_t)ARC_CENTER_Y;
-    inner_arc_border.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND);
+    inner_arc_border.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND + 2);
     inner_arc_border.start_angle = 0;
     inner_arc_border.end_angle = 90;
     lv_draw_arc(layer, &inner_arc_border);
@@ -197,7 +231,7 @@ static void band_draw_cb(lv_event_t *event) {
     outer_arc_border.width = BORDER_THICKNESS;
     outer_arc_border.center.x = (int32_t)ARC_CENTER_X;
     outer_arc_border.center.y = (int32_t)ARC_CENTER_Y;
-    outer_arc_border.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
+    outer_arc_border.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND + 2);
     outer_arc_border.start_angle = 0;
     outer_arc_border.end_angle = 90;
     lv_draw_arc(layer, &outer_arc_border);

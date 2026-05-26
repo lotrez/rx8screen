@@ -210,9 +210,35 @@ After EVERY code change to UI files (`src/ui/*.cpp`, `src/ui/*.h`, `src/main.cpp
 
 1. Build the native target
 2. Run screenshot captures at key states: `program.exe --screenshot <rpm> <file.bmp>`
-3. Convert BMP to PNG: `Add-Type -AssemblyName System.Drawing; $bmp = [System.Drawing.Image]::FromFile("...bmp"); $bmp.Save("...png", [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()`
-4. Analyze each PNG with `zai-mcp-server_analyze_image` to check alignment, gaps, artifacts
-5. Iterate until the analysis confirms correctness
+3. **Pixel analysis (primary)**: Read BMP pixels directly via Node.js to verify geometry, alignment, and colors. The BMP is 32-bit RGBA, rowSize=3200, data offset at byte 10. Use this to check exact pixel positions, measure fill heights, detect seams/gaps, and verify color values.
+4. **Gemini analysis (secondary)**: Run `node analyze.js <screenshot.png>` (Gemini 3 Flash via Vercel AI SDK) for qualitative visual feedback. Be aware: Gemini's pixel coordinates are unreliable — trust pixel analysis over Gemini's coordinates.
+5. Iterate until both pixel analysis and Gemini confirm correctness
 6. Only then show the result to the user
 
-Do NOT show the user a broken result. Use the screenshot-feedback skill to verify first.
+### Pixel Analysis Cheat Sheet
+
+```javascript
+const fs = require('fs');
+const buf = fs.readFileSync('screenshot.bmp');
+const offset = buf.readUInt32LE(10);
+const rowSize = 3200; // 800px * 4 bytes, already 4-byte aligned
+function px(x, y) {
+  const row = 479 - y; // BMP is bottom-up, flip Y
+  const idx = offset + row * rowSize + x * 4;
+  return '#' + [buf[idx+2],buf[idx+1],buf[idx]].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+// Example: check fill height at each x position
+for (let x = 668; x <= 760; x += 4) {
+  let y_first = -1, y_last = -1;
+  for (let y = 300; y <= 475; y++) {
+    const c = px(x, y);
+    if (c !== '#080808' && c !== '#00a931' && c !== '#181818') {
+      if (y_first === -1) y_first = y;
+      y_last = y;
+    }
+  }
+  if (y_first >= 0) console.log('x='+x+': fill y='+y_first+'..'+y_last);
+}
+```
+
+Do NOT show the user a broken result. Verify first.
