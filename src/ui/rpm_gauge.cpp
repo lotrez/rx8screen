@@ -86,7 +86,7 @@ static void band_draw_cb(lv_event_t *event) {
     // --- Draw right flat band as horizontal strips ---
     int num_right_strips = 200;
     float fill_x_left = SCREEN_WIDTH - MARGIN - BAND_THICKNESS + BORDER_THICKNESS + FILL_INSET;
-    float fill_x_right = SCREEN_WIDTH - MARGIN - BORDER_THICKNESS - FILL_INSET;
+    float fill_x_right = SCREEN_WIDTH - MARGIN - BORDER_THICKNESS - FILL_INSET + 1;
     float fill_y_bottom_arc = ARC_CENTER_Y + 3;
     float fill_y_top_end = MARGIN + BORDER_THICKNESS + FILL_INSET;
     float right_total_height = fill_y_bottom_arc - fill_y_top_end;
