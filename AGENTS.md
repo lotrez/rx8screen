@@ -203,3 +203,16 @@ src/
 
 - Use descriptive variable names — no single or double letter variables (e.g. no `i`, `j`, `x`, `t`, `r`, `g`, `b`). Use names like `strip_index`, `position`, `red`, `green`, `blue`, etc.
 - Exception: LVGL API struct fields and function parameters that require short names (e.g. `coords.x1`) are fine as-is.
+
+## Visual Feedback Workflow
+
+After EVERY code change to UI files (`src/ui/*.cpp`, `src/ui/*.h`, `src/main.cpp`), you MUST:
+
+1. Build the native target
+2. Run screenshot captures at key states: `program.exe --screenshot <rpm> <file.bmp>`
+3. Convert BMP to PNG: `Add-Type -AssemblyName System.Drawing; $bmp = [System.Drawing.Image]::FromFile("...bmp"); $bmp.Save("...png", [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()`
+4. Analyze each PNG with `zai-mcp-server_analyze_image` to check alignment, gaps, artifacts
+5. Iterate until the analysis confirms correctness
+6. Only then show the result to the user
+
+Do NOT show the user a broken result. Use the screenshot-feedback skill to verify first.

@@ -1,12 +1,16 @@
 #include <lvgl.h>
 #include <math.h>
 #include <src/drivers/sdl/lv_sdl_window.h>
+#include <SDL.h>
 #include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
 // #include "ui/water_temp_gauge.h"
 // #include "ui/oil_temp_gauge.h"
 // #include "ui/fuel_gauge.h"
 // #include "ui/voltage_gauge.h"
+
+#include <string.h>
+#include <stdio.h>
 
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
@@ -94,6 +98,39 @@ int main(int argc, char **argv) {
     lv_display_t *disp = lv_sdl_window_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
     create_dashboard(lv_screen_active());
+
+    // Screenshot mode: --screenshot <rpm> <output.bmp>
+    if (argc >= 4 && strcmp(argv[1], "--screenshot") == 0) {
+        float screenshot_rpm = (float)atof(argv[2]);
+        const char *screenshot_path = argv[3];
+
+        // Set RPM to the requested value
+        rpm_gauge.update(screenshot_rpm);
+        speed_gauge.update(80);
+
+        // Render a few frames to make sure everything is drawn
+        for (int frame = 0; frame < 5; frame++) {
+            lv_timer_handler();
+            lv_delay_ms(10);
+        }
+
+        // Capture the SDL window
+        SDL_Window *window = lv_sdl_window_get_window(disp);
+        SDL_Renderer *renderer = (SDL_Renderer *)lv_sdl_window_get_renderer(disp);
+
+        int window_width, window_height;
+        SDL_GetWindowSize(window, &window_width, &window_height);
+
+        SDL_Surface *surface = SDL_CreateRGBSurface(0, window_width, window_height, 32,
+            0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+        SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888,
+            surface->pixels, surface->pitch);
+        SDL_SaveBMP(surface, screenshot_path);
+        SDL_FreeSurface(surface);
+
+        printf("Screenshot saved: %s (RPM=%.0f)\n", screenshot_path, screenshot_rpm);
+        return 0;
+    }
 
     while (1) {
         update_simulation();
