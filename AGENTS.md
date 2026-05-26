@@ -206,7 +206,7 @@ src/
 
 ## Visual Feedback Workflow
 
-After EVERY code change to UI files (`src/ui/*.cpp`, `src/ui/*.h`, `src/main.cpp`), you MUST:
+**MANDATORY: After EVERY code change to UI files (`src/ui/*.cpp`, `src/ui/*.h`, `src/main.cpp`), you MUST verify the result before telling the user it's done. Never skip verification.**
 
 1. Build the native target
 2. Run screenshot captures at key states: `program.exe --screenshot <rpm> <file.bmp>`

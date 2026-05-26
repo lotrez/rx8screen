@@ -115,13 +115,11 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
-    // --- Draw corner arc band using overlapping thick arcs for smooth edges ---
+    // --- Draw corner arc band using overlapping thick arcs ---
     int arc_fill_width = BAND_THICKNESS - 2 * (BORDER_THICKNESS + FILL_INSET);
-    // LVGL renders thick arcs with outer edge at given radius, extending inward by width.
-    // To align with flat bands, outer edge must reach flat fill outer edge.
     int arc_fill_radius = (int)(CORNER_RADIUS + HALF_BAND - BORDER_THICKNESS - FILL_INSET);
 
-    // Base arc layer - single continuous call to avoid any gaps
+    // Base arc layer - solid COLOR_SEG_OFF
     {
         lv_draw_arc_dsc_t base_arc;
         lv_draw_arc_dsc_init(&base_arc);
@@ -135,9 +133,10 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_arc(layer, &base_arc);
     }
 
-    // Gradient overlay segments on top of base
+    // Gradient overlay - overlapping segments to cover anti-aliased seams
     int num_arc_segments = 45;
     float arc_segment_angle = 90.0f / num_arc_segments;
+    float overlap_angle = 0.0f;
 
     for (int seg = 0; seg < num_arc_segments; seg++) {
         float angle_mid = (seg + 0.5f) * arc_segment_angle;
@@ -148,8 +147,10 @@ static void band_draw_cb(lv_event_t *event) {
 
         lv_color_t seg_color = gradient_color(gradient_position);
 
-        float angle_start = seg * arc_segment_angle;
-        float angle_end = (seg + 1) * arc_segment_angle;
+        float angle_start = seg * arc_segment_angle - overlap_angle;
+        float angle_end = (seg + 1) * arc_segment_angle + overlap_angle;
+        if (angle_start < 0.0f) angle_start = 0.0f;
+        if (angle_end > 90.0f) angle_end = 90.0f;
 
         lv_draw_arc_dsc_t arc_fill;
         lv_draw_arc_dsc_init(&arc_fill);
@@ -235,6 +236,24 @@ static void band_draw_cb(lv_event_t *event) {
     outer_arc_border.start_angle = 0;
     outer_arc_border.end_angle = 90;
     lv_draw_arc(layer, &outer_arc_border);
+
+    // Mask inner edge overflow with rect strips (after all arcs, stop at border inner edge)
+    {
+        float r_mask = (float)(CORNER_RADIUS - HALF_BAND) - 3.0f;
+        float r_mask_sq = r_mask * r_mask;
+        for (int y = ARC_CENTER_Y; y <= ARC_CENTER_Y + (int)r_mask; y++) {
+            float dy = (float)(y - ARC_CENTER_Y);
+            float dy_sq = dy * dy;
+            if (dy_sq > r_mask_sq) break;
+            int x_boundary = (int)(ARC_CENTER_X + sqrtf(r_mask_sq - dy_sq));
+            if (x_boundary <= ARC_CENTER_X) continue;
+            lv_area_t mask_coords = { (lv_coord_t)ARC_CENTER_X, (lv_coord_t)y, (lv_coord_t)x_boundary, (lv_coord_t)y };
+            lv_draw_rect_dsc_t mask_dsc;
+            lv_draw_rect_dsc_init(&mask_dsc);
+            mask_dsc.bg_color = COLOR_BG;
+            lv_draw_rect(layer, &mask_dsc, &mask_coords);
+        }
+    }
 }
 
 void RpmGauge::create(lv_obj_t *parent) {
