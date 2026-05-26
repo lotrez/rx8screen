@@ -54,7 +54,7 @@ static void band_draw_cb(lv_event_t *event) {
     float active_position = gauge->get_active_t();
 
     int fill_y_top = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS + BORDER_THICKNESS + FILL_INSET;
-    int fill_y_bottom = SCREEN_HEIGHT - MARGIN - BORDER_THICKNESS - FILL_INSET;
+    int fill_y_bottom = SCREEN_HEIGHT - MARGIN - BORDER_THICKNESS - FILL_INSET + 1;
 
     // --- Draw bottom flat band as vertical strips ---
     int num_bottom_strips = 200;
