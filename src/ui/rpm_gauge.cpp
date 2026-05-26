@@ -133,12 +133,15 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_arc(layer, &base_arc);
     }
 
-    // Gradient overlay - overlapping segments to cover anti-aliased seams
+    // Gradient overlay - draw from largest angle to smallest
+    // Each arc spans 0° to its own end angle. Drawn in reverse order
+    // so smaller (greener) arcs overwrite larger (redder) ones.
+    // This avoids anti-aliased seam edges between adjacent narrow slices.
     int num_arc_segments = 45;
     float arc_segment_angle = 90.0f / num_arc_segments;
-    float overlap_angle = 0.0f;
 
-    for (int seg = 0; seg < num_arc_segments; seg++) {
+    for (int seg = num_arc_segments - 1; seg >= 0; seg--) {
+        float angle_end = (seg + 1) * arc_segment_angle;
         float angle_mid = (seg + 0.5f) * arc_segment_angle;
         float arc_fraction = 1.0f - angle_mid / 90.0f;
         float gradient_position = (PATH_BOTTOM_LEN + arc_fraction * PATH_ARC_LEN) / PATH_TOTAL_LEN;
@@ -147,11 +150,6 @@ static void band_draw_cb(lv_event_t *event) {
 
         lv_color_t seg_color = gradient_color(gradient_position);
 
-        float angle_start = seg * arc_segment_angle - overlap_angle;
-        float angle_end = (seg + 1) * arc_segment_angle + overlap_angle;
-        if (angle_start < 0.0f) angle_start = 0.0f;
-        if (angle_end > 90.0f) angle_end = 90.0f;
-
         lv_draw_arc_dsc_t arc_fill;
         lv_draw_arc_dsc_init(&arc_fill);
         arc_fill.color = seg_color;
@@ -159,7 +157,7 @@ static void band_draw_cb(lv_event_t *event) {
         arc_fill.center.x = (int32_t)ARC_CENTER_X;
         arc_fill.center.y = (int32_t)ARC_CENTER_Y;
         arc_fill.radius = (uint16_t)arc_fill_radius;
-        arc_fill.start_angle = (lv_value_precise_t)angle_start;
+        arc_fill.start_angle = 0;
         arc_fill.end_angle = (lv_value_precise_t)angle_end;
         lv_draw_arc(layer, &arc_fill);
     }
