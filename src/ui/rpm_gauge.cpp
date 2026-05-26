@@ -116,8 +116,8 @@ static void band_draw_cb(lv_event_t *event) {
     }
 
     // --- Draw corner arc band using overlapping thick arcs ---
-    int arc_fill_width = BAND_THICKNESS - 2 * (BORDER_THICKNESS + FILL_INSET);
-    int arc_fill_radius = (int)(CORNER_RADIUS + HALF_BAND - BORDER_THICKNESS - FILL_INSET);
+    int arc_fill_width = BAND_THICKNESS - 2 * (BORDER_THICKNESS + FILL_INSET) + 2;
+    int arc_fill_radius = (int)(CORNER_RADIUS + HALF_BAND - BORDER_THICKNESS - FILL_INSET + 2);
 
     // Base arc layer - solid COLOR_SEG_OFF
     {
