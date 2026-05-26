@@ -27,6 +27,7 @@ static const float PATH_RIGHT_LEN = ARC_CENTER_Y - MARGIN;
 static const float PATH_TOTAL_LEN = PATH_BOTTOM_LEN + PATH_ARC_LEN + PATH_RIGHT_LEN;
 
 static const int BORDER_THICKNESS = 3;
+static const int INNER_BORDER_THICKNESS = 2;
 
 // Returns gradient color from green (position=0) through amber (0.5) to red (1)
 static lv_color_t gradient_color(float position) {
@@ -45,14 +46,155 @@ static lv_color_t gradient_color(float position) {
     return lv_color_hex(((uint32_t)red << 16) | ((uint32_t)green << 8) | blue);
 }
 
-// Draw the entire band + border using LVGL draw primitives on the layer.
+// Draw the entire band using correct layering:
+// Layer 1 (bottom): Green outer border (lines + arcs)
+// Layer 2 (middle): Black inner border (lines + arcs) — creates the gap
+// Layer 3 (top): Gradient fill (strips + arc) — inset to sit inside the black border
 // Called every frame via LV_EVENT_DRAW_MAIN.
 static void band_draw_cb(lv_event_t *event) {
     lv_layer_t *layer = lv_event_get_layer(event);
     RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(event);
     float active_position = gauge->get_active_t();
 
-    // --- Draw bottom flat band as vertical strips ---
+    // ========== Layer 1: Green outer border ==========
+
+    lv_draw_line_dsc_t green_line;
+    lv_draw_line_dsc_init(&green_line);
+    green_line.color = COLOR_BORDER;
+    green_line.width = BORDER_THICKNESS;
+
+    // Start cap: vertical line at the left end of the bottom band
+    green_line.p1.x = MARGIN;
+    green_line.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    green_line.p2.x = MARGIN;
+    green_line.p2.y = SCREEN_HEIGHT - MARGIN;
+    lv_draw_line(layer, &green_line);
+
+    // End cap: horizontal line at the top end of the right band
+    green_line.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    green_line.p1.y = MARGIN;
+    green_line.p2.x = SCREEN_WIDTH - MARGIN;
+    green_line.p2.y = MARGIN;
+    lv_draw_line(layer, &green_line);
+
+    // Inner bottom line
+    green_line.p1.x = MARGIN;
+    green_line.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    green_line.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    green_line.p2.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
+    lv_draw_line(layer, &green_line);
+
+    // Inner right line
+    green_line.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    green_line.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    green_line.p2.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
+    green_line.p2.y = MARGIN;
+    lv_draw_line(layer, &green_line);
+
+    // Outer bottom line
+    green_line.p1.x = MARGIN;
+    green_line.p1.y = SCREEN_HEIGHT - MARGIN;
+    green_line.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    green_line.p2.y = SCREEN_HEIGHT - MARGIN;
+    lv_draw_line(layer, &green_line);
+
+    // Outer right line
+    green_line.p1.x = SCREEN_WIDTH - MARGIN;
+    green_line.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    green_line.p2.x = SCREEN_WIDTH - MARGIN;
+    green_line.p2.y = MARGIN;
+    lv_draw_line(layer, &green_line);
+
+    // Inner corner arc
+    lv_draw_arc_dsc_t inner_green_arc;
+    lv_draw_arc_dsc_init(&inner_green_arc);
+    inner_green_arc.color = COLOR_BORDER;
+    inner_green_arc.width = BORDER_THICKNESS;
+    inner_green_arc.center.x = (int32_t)ARC_CENTER_X;
+    inner_green_arc.center.y = (int32_t)ARC_CENTER_Y;
+    inner_green_arc.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND);
+    inner_green_arc.start_angle = 0;
+    inner_green_arc.end_angle = 90;
+    lv_draw_arc(layer, &inner_green_arc);
+
+    // Outer corner arc
+    lv_draw_arc_dsc_t outer_green_arc;
+    lv_draw_arc_dsc_init(&outer_green_arc);
+    outer_green_arc.color = COLOR_BORDER;
+    outer_green_arc.width = BORDER_THICKNESS;
+    outer_green_arc.center.x = (int32_t)ARC_CENTER_X;
+    outer_green_arc.center.y = (int32_t)ARC_CENTER_Y;
+    outer_green_arc.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
+    outer_green_arc.start_angle = 0;
+    outer_green_arc.end_angle = 90;
+    lv_draw_arc(layer, &outer_green_arc);
+
+    // ========== Layer 2: Black inner border ==========
+
+    lv_draw_line_dsc_t black_line;
+    lv_draw_line_dsc_init(&black_line);
+    black_line.color = lv_color_hex(0x000000);
+    black_line.width = INNER_BORDER_THICKNESS;
+
+    int total_inset = BORDER_THICKNESS / 2 + INNER_BORDER_THICKNESS;
+
+    // Inner bottom black line
+    black_line.p1.x = MARGIN;
+    black_line.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS + total_inset;
+    black_line.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    black_line.p2.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS + total_inset;
+    lv_draw_line(layer, &black_line);
+
+    // Inner right black line
+    black_line.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS + total_inset;
+    black_line.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    black_line.p2.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS + total_inset;
+    black_line.p2.y = MARGIN;
+    lv_draw_line(layer, &black_line);
+
+    // Outer bottom black line
+    black_line.p1.x = MARGIN;
+    black_line.p1.y = SCREEN_HEIGHT - MARGIN - total_inset;
+    black_line.p2.x = (lv_value_precise_t)ARC_CENTER_X;
+    black_line.p2.y = SCREEN_HEIGHT - MARGIN - total_inset;
+    lv_draw_line(layer, &black_line);
+
+    // Outer right black line
+    black_line.p1.x = SCREEN_WIDTH - MARGIN - total_inset;
+    black_line.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
+    black_line.p2.x = SCREEN_WIDTH - MARGIN - total_inset;
+    black_line.p2.y = MARGIN;
+    lv_draw_line(layer, &black_line);
+
+    // Inner corner black arc
+    lv_draw_arc_dsc_t inner_black_arc;
+    lv_draw_arc_dsc_init(&inner_black_arc);
+    inner_black_arc.color = lv_color_hex(0x000000);
+    inner_black_arc.width = INNER_BORDER_THICKNESS;
+    inner_black_arc.center.x = (int32_t)ARC_CENTER_X;
+    inner_black_arc.center.y = (int32_t)ARC_CENTER_Y;
+    inner_black_arc.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND + total_inset);
+    inner_black_arc.start_angle = 0;
+    inner_black_arc.end_angle = 90;
+    lv_draw_arc(layer, &inner_black_arc);
+
+    // Outer corner black arc
+    lv_draw_arc_dsc_t outer_black_arc;
+    lv_draw_arc_dsc_init(&outer_black_arc);
+    outer_black_arc.color = lv_color_hex(0x000000);
+    outer_black_arc.width = INNER_BORDER_THICKNESS;
+    outer_black_arc.center.x = (int32_t)ARC_CENTER_X;
+    outer_black_arc.center.y = (int32_t)ARC_CENTER_Y;
+    outer_black_arc.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND - total_inset);
+    outer_black_arc.start_angle = 0;
+    outer_black_arc.end_angle = 90;
+    lv_draw_arc(layer, &outer_black_arc);
+
+    // ========== Layer 3: Gradient fill (on top of everything) ==========
+
+    int fill_inset = total_inset + INNER_BORDER_THICKNESS / 2;
+
+    // --- Bottom flat band as vertical strips ---
     int num_bottom_strips = 200;
     float bottom_strip_width = PATH_BOTTOM_LEN / num_bottom_strips;
 
@@ -66,8 +208,8 @@ static void band_draw_cb(lv_event_t *event) {
         lv_area_t coords;
         coords.x1 = (lv_coord_t)(MARGIN + strip * bottom_strip_width);
         coords.x2 = (lv_coord_t)(MARGIN + (strip + 1) * bottom_strip_width);
-        coords.y1 = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-        coords.y2 = SCREEN_HEIGHT - MARGIN;
+        coords.y1 = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS + fill_inset;
+        coords.y2 = SCREEN_HEIGHT - MARGIN - fill_inset;
 
         lv_draw_rect_dsc_t rect_descriptor;
         lv_draw_rect_dsc_init(&rect_descriptor);
@@ -75,7 +217,7 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
-    // --- Draw right flat band as horizontal strips ---
+    // --- Right flat band as horizontal strips ---
     int num_right_strips = 200;
     float right_strip_height = PATH_RIGHT_LEN / num_right_strips;
 
@@ -90,8 +232,8 @@ static void band_draw_cb(lv_event_t *event) {
         lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
 
         lv_area_t coords;
-        coords.x1 = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-        coords.x2 = SCREEN_WIDTH - MARGIN;
+        coords.x1 = SCREEN_WIDTH - MARGIN - BAND_THICKNESS + fill_inset;
+        coords.x2 = SCREEN_WIDTH - MARGIN - fill_inset;
         coords.y1 = (lv_coord_t)strip_y_pos;
         coords.y2 = (lv_coord_t)(strip_y_pos + right_strip_height);
 
@@ -101,7 +243,7 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
-    // --- Draw corner arc band using overlapping thick arcs for smooth edges ---
+    // --- Corner arc band using overlapping thick arcs ---
     int num_arc_segments = 45;
     float arc_segment_angle = 90.0f / num_arc_segments;
 
@@ -120,7 +262,7 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_arc_dsc_t arc_fill;
         lv_draw_arc_dsc_init(&arc_fill);
         arc_fill.color = seg_color;
-        arc_fill.width = BAND_THICKNESS;
+        arc_fill.width = BAND_THICKNESS - fill_inset * 2;
         arc_fill.center.x = (int32_t)ARC_CENTER_X;
         arc_fill.center.y = (int32_t)ARC_CENTER_Y;
         arc_fill.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
@@ -128,79 +270,6 @@ static void band_draw_cb(lv_event_t *event) {
         arc_fill.end_angle = (lv_value_precise_t)angle_end;
         lv_draw_arc(layer, &arc_fill);
     }
-
-    // --- Border: lines for flat sides, arcs for corner ---
-
-    lv_draw_line_dsc_t line_descriptor;
-    lv_draw_line_dsc_init(&line_descriptor);
-    line_descriptor.color = COLOR_BORDER;
-    line_descriptor.width = BORDER_THICKNESS;
-
-    // Start cap: vertical line at the left end of the bottom band
-    line_descriptor.p1.x = MARGIN;
-    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-    line_descriptor.p2.x = MARGIN;
-    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN;
-    lv_draw_line(layer, &line_descriptor);
-
-    // End cap: horizontal line at the top end of the right band
-    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-    line_descriptor.p1.y = MARGIN;
-    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN;
-    line_descriptor.p2.y = MARGIN;
-    lv_draw_line(layer, &line_descriptor);
-
-    // Inner bottom line
-    line_descriptor.p1.x = MARGIN;
-    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
-    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN - BAND_THICKNESS;
-    lv_draw_line(layer, &line_descriptor);
-
-    // Inner right line
-    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
-    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN - BAND_THICKNESS;
-    line_descriptor.p2.y = MARGIN;
-    lv_draw_line(layer, &line_descriptor);
-
-    // Outer bottom line
-    line_descriptor.p1.x = MARGIN;
-    line_descriptor.p1.y = SCREEN_HEIGHT - MARGIN;
-    line_descriptor.p2.x = (lv_value_precise_t)ARC_CENTER_X;
-    line_descriptor.p2.y = SCREEN_HEIGHT - MARGIN;
-    lv_draw_line(layer, &line_descriptor);
-
-    // Outer right line
-    line_descriptor.p1.x = SCREEN_WIDTH - MARGIN;
-    line_descriptor.p1.y = (lv_value_precise_t)ARC_CENTER_Y;
-    line_descriptor.p2.x = SCREEN_WIDTH - MARGIN;
-    line_descriptor.p2.y = MARGIN;
-    lv_draw_line(layer, &line_descriptor);
-
-    // Inner corner arc
-    lv_draw_arc_dsc_t inner_arc_border;
-    lv_draw_arc_dsc_init(&inner_arc_border);
-    inner_arc_border.color = COLOR_BORDER;
-    inner_arc_border.width = BORDER_THICKNESS;
-    inner_arc_border.center.x = (int32_t)ARC_CENTER_X;
-    inner_arc_border.center.y = (int32_t)ARC_CENTER_Y;
-    inner_arc_border.radius = (uint16_t)(CORNER_RADIUS - HALF_BAND);
-    inner_arc_border.start_angle = 0;
-    inner_arc_border.end_angle = 90;
-    lv_draw_arc(layer, &inner_arc_border);
-
-    // Outer corner arc
-    lv_draw_arc_dsc_t outer_arc_border;
-    lv_draw_arc_dsc_init(&outer_arc_border);
-    outer_arc_border.color = COLOR_BORDER;
-    outer_arc_border.width = BORDER_THICKNESS;
-    outer_arc_border.center.x = (int32_t)ARC_CENTER_X;
-    outer_arc_border.center.y = (int32_t)ARC_CENTER_Y;
-    outer_arc_border.radius = (uint16_t)(CORNER_RADIUS + HALF_BAND);
-    outer_arc_border.start_angle = 0;
-    outer_arc_border.end_angle = 90;
-    lv_draw_arc(layer, &outer_arc_border);
 }
 
 void RpmGauge::create(lv_obj_t *parent) {
