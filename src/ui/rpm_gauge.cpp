@@ -134,9 +134,9 @@ static void band_draw_cb(lv_event_t *event) {
     }
 
     // Gradient overlay - overlapping segments to cover anti-aliased seams
-    int num_arc_segments = 45;
+    int num_arc_segments = 90;
     float arc_segment_angle = 90.0f / num_arc_segments;
-    float overlap_angle = 0.0f;
+    float overlap_angle = arc_segment_angle;
 
     for (int seg = 0; seg < num_arc_segments; seg++) {
         float angle_mid = (seg + 0.5f) * arc_segment_angle;
