@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
+#include "ui/gear_indicator.h"
 // #include "ui/water_temp_gauge.h"
 // #include "ui/oil_temp_gauge.h"
 // #include "ui/fuel_gauge.h"
@@ -14,10 +15,7 @@
 
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
-// static WaterTempGauge water_temp_gauge;
-// static OilTempGauge oil_temp_gauge;
-// static FuelGauge fuel_gauge;
-// static VoltageGauge voltage_gauge;
+static GearIndicator gear_indicator;
 
 static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0A), 0);
@@ -25,7 +23,10 @@ static void create_dashboard(lv_obj_t *parent) {
 
     speed_gauge.create(parent);
     lv_obj_set_size(speed_gauge.get_container(), LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_align(speed_gauge.get_container(), LV_ALIGN_TOP_LEFT, 20, 20);
+    lv_obj_align(speed_gauge.get_container(), LV_ALIGN_TOP_LEFT, 26, 25);
+
+    gear_indicator.create(parent);
+    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_CENTER, -256, -38);
 
     rpm_gauge.create(parent);
 
@@ -223,6 +224,7 @@ static void update_simulation() {
 
     rpm_gauge.update(sim_rpm);
     speed_gauge.update(sim_speed);
+    gear_indicator.update(sim_current_gear);
 }
 
 int main(int argc, char **argv) {

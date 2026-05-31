@@ -13,10 +13,10 @@ static const lv_color_t COLOR_BORDER = lv_color_hex(0x00AA30);
 
 static const int SCREEN_WIDTH = DISPLAY_WIDTH;
 static const int SCREEN_HEIGHT = DISPLAY_HEIGHT;
-static const int BAND_THICKNESS = 50;
+static const int BAND_THICKNESS = 64;
 static const float HALF_BAND = BAND_THICKNESS / 2.0f;
-static const float CORNER_RADIUS = 100.0f;
-static const int MARGIN = 10;
+static const float CORNER_RADIUS = 128.0f;
+static const int MARGIN = 13;
 
 static const float ARC_CENTER_X = (SCREEN_WIDTH - MARGIN) - HALF_BAND - CORNER_RADIUS;
 static const float ARC_CENTER_Y = (SCREEN_HEIGHT - MARGIN) - HALF_BAND - CORNER_RADIUS;
@@ -273,7 +273,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_BOTTOM_LEFT, 30, -(lv_coord_t)(BAND_THICKNESS + MARGIN + 20));
+    lv_obj_align(digit_row, LV_ALIGN_BOTTOM_LEFT, 38, -(lv_coord_t)(BAND_THICKNESS + MARGIN + 25));
 
     for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
@@ -297,7 +297,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_label_set_text(unit_label, "RPM");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(unit_label, &orbitron_bold_20, 0);
-    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 8, -14);
+    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, -18);
 }
 
 void RpmGauge::update(float rpm) {

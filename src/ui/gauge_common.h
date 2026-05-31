@@ -15,8 +15,8 @@ static inline void style_container(lv_obj_t *obj) {
     lv_obj_set_style_bg_color(obj, COLOR_BG, 0);
     lv_obj_set_style_bg_opa(obj, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(obj, 0, 0);
-    lv_obj_set_style_radius(obj, 4, 0);
-    lv_obj_set_style_pad_all(obj, 6, 0);
+    lv_obj_set_style_radius(obj, 5, 0);
+    lv_obj_set_style_pad_all(obj, 8, 0);
 }
 
 static inline lv_color_t get_threshold_color(float value, float warn, float crit) {
@@ -43,7 +43,7 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     w.container = lv_obj_create(parent);
     style_container(w.container);
     lv_obj_set_size(w.container, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_row(w.container, 2, 0);
+    lv_obj_set_style_pad_row(w.container, 3, 0);
 
     lv_obj_t *header = lv_obj_create(w.container);
     lv_obj_set_style_bg_opa(header, LV_OPA_TRANSP, 0);
@@ -51,7 +51,7 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_style_pad_all(header, 0, 0);
     lv_obj_set_size(header, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_align(header, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(header, 4, 0);
+    lv_obj_set_style_pad_column(header, 5, 0);
 
     lv_obj_t *name_label = lv_label_create(header);
     lv_label_set_text(name_label, name);
@@ -64,15 +64,16 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_style_text_font(w.value_label, &dseg7_classic_bold_20, 0);
 
     w.bar = lv_bar_create(w.container);
-    lv_obj_set_size(w.bar, LV_PCT(100), 14);
+    lv_obj_set_size(w.bar, LV_PCT(100), 18);
     lv_bar_set_range(w.bar, (int32_t)(min * 10), (int32_t)(max * 10));
     lv_bar_set_value(w.bar, (int32_t)(min * 10), LV_ANIM_OFF);
     lv_obj_set_style_bg_color(w.bar, COLOR_TRACK, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(w.bar, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_radius(w.bar, 3, LV_PART_MAIN);
+    lv_obj_set_style_radius(w.bar, 4, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(w.bar, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_bg_color(w.bar, COLOR_PRIMARY, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(w.bar, LV_OPA_COVER, LV_PART_INDICATOR);
-    lv_obj_set_style_radius(w.bar, 3, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(w.bar, 4, LV_PART_INDICATOR);
 
     return w;
 }

@@ -17,7 +17,7 @@ void SpeedGauge::create(lv_obj_t *parent) {
     lv_obj_set_size(digit_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(digit_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(digit_row, 6, 0);
+    lv_obj_set_style_pad_column(digit_row, 8, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < 3; i++) {

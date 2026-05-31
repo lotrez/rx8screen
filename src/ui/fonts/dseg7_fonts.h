@@ -19,6 +19,7 @@ LV_FONT_DECLARE(dseg7_classic_bold_italic_56)
 LV_FONT_DECLARE(dseg7_classic_bold_italic_64)
 LV_FONT_DECLARE(dseg7_classic_bold_italic_72)
 LV_FONT_DECLARE(dseg7_classic_bold_italic_80)
+LV_FONT_DECLARE(dseg7_classic_bold_italic_112)
 LV_FONT_DECLARE(dseg7_classic_regular_10)
 LV_FONT_DECLARE(dseg7_classic_regular_12)
 LV_FONT_DECLARE(dseg7_classic_regular_14)
@@ -133,6 +134,7 @@ extern const lv_font_t dseg7_classic_bold_italic_56;
 extern const lv_font_t dseg7_classic_bold_italic_64;
 extern const lv_font_t dseg7_classic_bold_italic_72;
 extern const lv_font_t dseg7_classic_bold_italic_80;
+extern const lv_font_t dseg7_classic_bold_italic_112;
 extern const lv_font_t dseg7_classic_regular_10;
 extern const lv_font_t dseg7_classic_regular_12;
 extern const lv_font_t dseg7_classic_regular_14;
