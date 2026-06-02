@@ -26,7 +26,7 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_align(speed_gauge.get_container(), LV_ALIGN_TOP_LEFT, 26, 25);
 
     gear_indicator.create(parent);
-    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_CENTER, -256, -38);
+    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_CENTER, 256, -38);
 
     rpm_gauge.create(parent);
 
