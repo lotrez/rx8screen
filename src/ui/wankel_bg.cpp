@@ -15,14 +15,14 @@ static void wankel_draw_cb(lv_event_t *event) {
     int v3x = cx + 182;
     int v3y = cy + 105;
 
-    lv_color_t rotor_color = lv_color_hex(0x1A2A30);
-    lv_color_t housing_color = lv_color_hex(0x121A20);
+    lv_color_t rotor_color = lv_color_hex(0x2A4A50);
+    lv_color_t housing_color = lv_color_hex(0x1A2A30);
 
     lv_draw_arc_dsc_t arc_dsc;
     lv_draw_arc_dsc_init(&arc_dsc);
-    arc_dsc.width = 8;
+    arc_dsc.width = 10;
     arc_dsc.rounded = 1;
-    arc_dsc.opa = LV_OPA_50;
+    arc_dsc.opa = LV_OPA_70;
     arc_dsc.color = rotor_color;
     arc_dsc.radius = 260;
 
@@ -46,9 +46,9 @@ static void wankel_draw_cb(lv_event_t *event) {
 
     lv_draw_arc_dsc_t housing_dsc;
     lv_draw_arc_dsc_init(&housing_dsc);
-    housing_dsc.width = 6;
+    housing_dsc.width = 8;
     housing_dsc.rounded = 1;
-    housing_dsc.opa = LV_OPA_40;
+    housing_dsc.opa = LV_OPA_60;
     housing_dsc.color = housing_color;
 
     housing_dsc.center.x = cx - 80;
@@ -71,12 +71,12 @@ static void wankel_draw_cb(lv_event_t *event) {
     housing_dsc.end_angle = 600;
     lv_draw_arc(layer, &housing_dsc);
 
-    int dot_r = 6;
+    int dot_r = 10;
     lv_draw_arc_dsc_t dot_dsc;
     lv_draw_arc_dsc_init(&dot_dsc);
     dot_dsc.width = dot_r * 2;
     dot_dsc.rounded = 1;
-    dot_dsc.opa = LV_OPA_60;
+    dot_dsc.opa = LV_OPA_80;
     dot_dsc.color = lv_color_hex(0xE0E4F0);
     dot_dsc.radius = dot_r;
     dot_dsc.center.x = v1x; dot_dsc.center.y = v1y;
