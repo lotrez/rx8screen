@@ -39,7 +39,11 @@ async function run() {
   const data = await response.json();
   if (data.error) throw new Error(JSON.stringify(data.error));
   const msg = data.output.find(o => o.type === 'message');
-  console.log(msg ? msg.content : JSON.stringify(data));
+  const result = msg ? msg.content : JSON.stringify(data);
+  console.log(result);
+
+  const logEntry = `=== ${new Date().toISOString()} | ${screenshotPath} | ${question} ===\n${result}\n\n`;
+  require('fs').appendFileSync('feedback.log', logEntry);
 }
 
 run().catch(err => { console.error('Error:', err.message); process.exit(1); });

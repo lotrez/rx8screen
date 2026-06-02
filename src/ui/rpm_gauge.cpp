@@ -91,7 +91,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_TOP_MID, -40, 4);
+    lv_obj_align(digit_row, LV_ALIGN_RIGHT_MID, -16, -4);
 
     for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);

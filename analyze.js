@@ -14,28 +14,28 @@ const imageBuffer = fs.readFileSync(imagePath);
 const imageBase64 = imageBuffer.toString('base64');
 const ext = path.extname(imagePath).slice(1);
 
-const prompt = `You are an automotive UI designer who makes decisions. You are designing a 1024x600 dashboard for a Mazda RX-8 (rotary engine), built with LVGL on ESP32 (no images/icons/gradients — only solid rectangles, bars, arcs, and bitmap fonts).
+const prompt = `You are an automotive UI designer given full creative authority over this 1024x600 Mazda RX-8 dashboard (ESP32, LVGL primitives only: rectangles, arcs, bars, DSEG7/Orbitron fonts, solid colors). Do NOT suggest minor tweaks like moving elements 10px. Think big — propose real UX features.
 
 Current layout:
-- Row 0 (40%): Speed hero — 3 large DSEG7 digits (160px), gear indicator bottom-right
-- Row 1 (25%): Gauge card — 3 stacked horizontal bars (water temp green, battery amber, fuel red)
-- Row 2 (35%): RPM card — DSEG7 digits (64px) top-left, 30 segmented bars (white normal, amber 75%+, red 85%+)
+- Row 0 (50%): Speed hero — 3 DSEG7 digits, gear corner, km/h label
+- Row 1 (25%): Gauge card — WATER TEMP, BATTERY, FUEL horizontal bars (green/amber/red)
+- Row 2 (25%): RPM card — DSEG7 digits right-aligned, solid fill bar (white/amber/red zones)
 
-Current palette: bg #0A0A0E, cards #111116, text #E0E4F0, dim #5A5E6A, warn #FFB700, danger #E53935
+Palette: bg #0A0A0E, cards #111116, text #E0E4F0, dim #5A5E6A, amber #FFB700, red #E53935
 
-Make these decisions:
+Your GOAL: create a dashboard that feels premium, immersive, and purpose-built for a rotary engine enthusiast. It should feel like a product, not a prototype.
 
-1. SPEED CARD: The speed card has lots of empty space around the 3 digits and a small gear in the corner. What should fill the empty space? Options: (a) nothing, keep it clean, (b) a subtle progress arc behind the digits showing acceleration, (c) shift the digits to be off-center to look more dynamic. Pick one. 1 sentence.
+Make THREE decisions. For each, explain what you would build and why:
 
-2. GAUGE BARS: The 3 horizontal bars each have their own color. Should the bar track (unfilled portion) be (a) same dark color for all (#16161A), or (b) a dimmed version of each gauge's own color? Pick one. 1 sentence.
+1. SIGNATURE FEATURE: Propose one unique/interactive element that ONLY an RX-8 dashboard would have. No other car — what makes this dashboard special? Could be a visual effect, a rotary-specific gauge, a unique data display.
 
-3. RPM DIGITS: Currently left-aligned top-left. Should they be (a) left-aligned as-is, (b) centered above the bar, or (c) moved to the right side of the card? Pick one. 1 sentence.
+2. LAYOUT APPROACH: Is the current card-stack layout the right paradigm, or would a different approach work better? Options: (a) keep cards, (b) flow layout with overlapping elements, (c) single unified display with zones, (d) something else. Pick one and sketch the concept.
 
-4. TYPOGRAPHY: Should the gauge labels ("WATER TEMP", "BATTERY", "FUEL") be (a) uppercase as-is, (b) Title Case, or (c) just icons/symbols? Pick one. 1 sentence.
+3. COLOR & MOTION: Beyond static colors, what visual feedback would make this feel alive? Options: (a) RPM-reactive background glow, (b) speed-dependent element scaling, (c) warning animations, (d) something else. Pick one and describe.
 
-5. What is the single biggest flaw you see? Be specific — point to an exact element and say what's wrong. 1 sentence.
+4. BIGGEST MISSED OPPORTUNITY: What capability of a 1024x600 screen are we completely wasting? Be specific about what could exist in the empty space.
 
-6. RATE: 1-10.`;
+5. RATE: 1-10 for current state. If your 3 ideas were built, what score?`;
 
 async function runGoogle() {
   const { generateText } = require('ai');
@@ -94,7 +94,11 @@ async function runLMStudio() {
   const data = await response.json();
   if (data.error) throw new Error(JSON.stringify(data.error));
   const msg = data.output.find(o => o.type === 'message');
-  console.log(msg ? msg.content : JSON.stringify(data));
+  const result = msg ? msg.content : JSON.stringify(data);
+  console.log(result);
+
+  const logEntry = `=== ${new Date().toISOString()} | ${screenshotPath} ===\n${result}\n\n`;
+  require('fs').appendFileSync('feedback.log', logEntry);
 }
 
 const providers = { google: runGoogle, ollama: runOllama, lmstudio: runLMStudio };
