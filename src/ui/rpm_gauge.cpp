@@ -55,29 +55,24 @@ static void band_draw_cb(lv_event_t *event) {
     track_dsc.radius = radius;
     lv_draw_rect(layer, &track_dsc, &track_area);
 
-    int num_segments = 20;
-    int gap = 5;
-    int total_gap = (num_segments - 1) * gap;
-    int seg_w = (fill_w - total_gap) / num_segments;
+    if (active_position > 0.0f) {
+        int active_x = fill_x1 + (int)(fill_w * active_position);
 
-    for (int seg = 0; seg < num_segments; seg++) {
-        int seg_x1 = fill_x1 + seg * (seg_w + gap);
-        int seg_x2 = seg_x1 + seg_w - 1;
-        if (seg == num_segments - 1) seg_x2 = fill_x2;
-
-        float seg_mid = (seg + 0.5f) / num_segments;
-
-        lv_area_t seg_area = {(lv_coord_t)seg_x1, fill_y1, (lv_coord_t)seg_x2, fill_y2};
-        lv_draw_rect_dsc_t seg_dsc;
-        lv_draw_rect_dsc_init(&seg_dsc);
-
-        if (seg_mid <= active_position) {
-            seg_dsc.bg_color = zone_color(seg_mid);
+        lv_color_t fill_color;
+        if (active_position < 0.75f) {
+            fill_color = lv_color_hex(0xE0E4F0);
+        } else if (active_position < 0.85f) {
+            fill_color = lv_color_hex(0xFFB700);
         } else {
-            seg_dsc.bg_color = lv_color_hex(0x1A1A20);
+            fill_color = lv_color_hex(0xE53935);
         }
-        seg_dsc.radius = 1;
-        lv_draw_rect(layer, &seg_dsc, &seg_area);
+
+        lv_area_t fill_area = {(lv_coord_t)fill_x1, fill_y1, (lv_coord_t)active_x, fill_y2};
+        lv_draw_rect_dsc_t fill_dsc;
+        lv_draw_rect_dsc_init(&fill_dsc);
+        fill_dsc.bg_color = fill_color;
+        fill_dsc.radius = radius;
+        lv_draw_rect(layer, &fill_dsc, &fill_area);
     }
 }
 
