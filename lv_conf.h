@@ -696,7 +696,7 @@
 /** Enable handling large font and/or fonts with a lot of characters.
  *  The limit depends on the font size, font face and bpp.
  *  A compiler error will be triggered if a font needs it. */
-#define LV_FONT_FMT_TXT_LARGE 0
+#define LV_FONT_FMT_TXT_LARGE 1
 
 /** Enables/disables support for compressed fonts. */
 #define LV_USE_FONT_COMPRESSED 0
@@ -1097,7 +1097,7 @@
 /* Documentation for several of the below items can be found here: https://docs.lvgl.io/master/auxiliary-modules/index.html . */
 
 /** 1: Enable API to take snapshot for object */
-#define LV_USE_SNAPSHOT 0
+#define LV_USE_SNAPSHOT 1
 
 /** 1: Enable system monitor component */
 #define LV_USE_SYSMON   0

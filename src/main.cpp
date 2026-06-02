@@ -1,15 +1,16 @@
 #include <lvgl.h>
 #include <math.h>
 #include <src/drivers/sdl/lv_sdl_window.h>
+#include <src/draw/snapshot/lv_snapshot.h>
 #include <SDL.h>
 #include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
 #include "ui/gear_indicator.h"
 #include "ui/gauge_common.h"
-// #include "ui/water_temp_gauge.h"
-// #include "ui/oil_temp_gauge.h"
-// #include "ui/fuel_gauge.h"
-// #include "ui/voltage_gauge.h"
+#include "ui/water_temp_gauge.h"
+#include "ui/oil_temp_gauge.h"
+#include "ui/fuel_gauge.h"
+#include "ui/voltage_gauge.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -17,6 +18,10 @@
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
 static GearIndicator gear_indicator;
+static WaterTempGauge water_temp_gauge;
+static OilTempGauge oil_temp_gauge;
+static FuelGauge fuel_gauge;
+static VoltageGauge voltage_gauge;
 
 static lv_obj_t *card_rpm;
 static lv_obj_t *card_mid;
@@ -31,7 +36,7 @@ static lv_obj_t *create_card(lv_obj_t *parent) {
     lv_obj_set_style_border_color(card, COLOR_DIM, 0);
     lv_obj_set_style_border_width(card, 1, 0);
     lv_obj_set_style_radius(card, 16, 0);
-    lv_obj_set_style_pad_all(card, 12, 0);
+    lv_obj_set_style_pad_all(card, 6, 0);
     lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
     return card;
 }
@@ -40,8 +45,8 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0A), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
-    static lv_coord_t col_dsc[] = {LV_PCT(72), LV_PCT(28), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t row_dsc[] = {LV_PCT(38), LV_PCT(24), LV_PCT(38), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t col_dsc[] = {LV_GRID_FR(72), LV_GRID_FR(28), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t row_dsc[] = {LV_GRID_FR(38), LV_GRID_FR(24), LV_GRID_FR(38), LV_GRID_TEMPLATE_LAST};
 
     lv_obj_t *grid = lv_obj_create(parent);
     lv_obj_remove_style_all(grid);
@@ -54,10 +59,28 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
 
     card_rpm = create_card(grid);
+    lv_obj_set_style_pad_all(card_rpm, 0, 0);
     lv_obj_set_grid_cell(card_rpm, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
     card_mid = create_card(grid);
     lv_obj_set_grid_cell(card_mid, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    lv_obj_set_flex_flow(card_mid, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(card_mid, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_all(card_mid, 4, 0);
+    lv_obj_set_style_pad_column(card_mid, 4, 0);
+    lv_obj_clear_flag(card_mid, LV_OBJ_FLAG_SCROLLABLE);
+
+    water_temp_gauge.create(card_mid);
+    lv_obj_set_width(water_temp_gauge.get_container(), LV_PCT(24));
+
+    oil_temp_gauge.create(card_mid);
+    lv_obj_set_width(oil_temp_gauge.get_container(), LV_PCT(24));
+
+    voltage_gauge.create(card_mid);
+    lv_obj_set_width(voltage_gauge.get_container(), LV_PCT(24));
+
+    fuel_gauge.create(card_mid);
+    lv_obj_set_width(fuel_gauge.get_container(), LV_PCT(24));
 
     card_speed = create_card(grid);
     lv_obj_set_grid_cell(card_speed, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
@@ -235,6 +258,21 @@ static void update_simulation() {
     rpm_gauge.update(sim_rpm);
     speed_gauge.update(sim_speed);
     gear_indicator.update(sim_current_gear);
+
+    float sim_water_temp = 82.0f + sim_phase_tick * 0.02f;
+    if (sim_water_temp > 105.0f) sim_water_temp = 105.0f - (sim_water_temp - 105.0f) * 0.5f;
+    if (sim_water_temp > 110.0f) sim_water_temp = 110.0f;
+    water_temp_gauge.update(sim_water_temp);
+
+    float sim_oil_temp = sim_water_temp + 8.0f + sinf(sim_tick * 0.01f) * 3.0f;
+    oil_temp_gauge.update(sim_oil_temp);
+
+    float sim_voltage = 12.8f + (sim_rpm > 1000.0f ? 1.4f : 0.0f) + sinf(sim_tick * 0.05f) * 0.2f;
+    voltage_gauge.update(sim_voltage);
+
+    float sim_fuel = 72.0f - sim_tick * 0.005f;
+    if (sim_fuel < 5.0f) sim_fuel = 5.0f;
+    fuel_gauge.update(sim_fuel);
 }
 
 int main(int argc, char **argv) {
@@ -252,31 +290,77 @@ int main(int argc, char **argv) {
         float screenshot_rpm = (float)atof(argv[2]);
         const char *screenshot_path = argv[3];
 
-        // Set RPM to the requested value
         rpm_gauge.update(screenshot_rpm);
         speed_gauge.update(80);
+        water_temp_gauge.update(92.0f);
+        oil_temp_gauge.update(98.0f);
+        voltage_gauge.update(13.8f);
+        fuel_gauge.update(65.0f);
+        gear_indicator.update(2);
 
-        // Render a few frames to make sure everything is drawn
         for (int frame = 0; frame < 5; frame++) {
             lv_timer_handler();
             lv_delay_ms(10);
         }
 
-        // Capture the SDL window
-        SDL_Window *window = lv_sdl_window_get_window(disp);
-        SDL_Renderer *renderer = (SDL_Renderer *)lv_sdl_window_get_renderer(disp);
+        lv_obj_t *screen = lv_screen_active();
+        lv_draw_buf_t *snapshot = lv_snapshot_take(screen, LV_COLOR_FORMAT_ARGB8888);
+        if (snapshot) {
+            const uint8_t *src = snapshot->data;
+            int width = snapshot->header.w;
+            int height = snapshot->header.h;
+            uint32_t src_stride = snapshot->header.stride;
 
-        int window_width, window_height;
-        SDL_GetWindowSize(window, &window_width, &window_height);
+            int row_size = width * 4;
+            int padding = (4 - (row_size % 4)) % 4;
+            int bmp_row_size = row_size + padding;
+            int data_size = bmp_row_size * height;
+            int file_size = 54 + data_size;
 
-        SDL_Surface *surface = SDL_CreateRGBSurface(0, window_width, window_height, 32,
-            0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-        SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888,
-            surface->pixels, surface->pitch);
-        SDL_SaveBMP(surface, screenshot_path);
-        SDL_FreeSurface(surface);
+            uint8_t header[54] = {0};
+            header[0] = 'B'; header[1] = 'M';
+            header[2] = file_size & 0xFF;
+            header[3] = (file_size >> 8) & 0xFF;
+            header[4] = (file_size >> 16) & 0xFF;
+            header[5] = (file_size >> 24) & 0xFF;
+            header[10] = 54;
+            header[14] = 40;
+            header[18] = width & 0xFF;
+            header[19] = (width >> 8) & 0xFF;
+            header[22] = height & 0xFF;
+            header[23] = (height >> 8) & 0xFF;
+            header[26] = 1;
+            header[28] = 32;
+            header[34] = data_size & 0xFF;
+            header[35] = (data_size >> 8) & 0xFF;
+            header[38] = 0x13; header[39] = 0x0B;
+            header[42] = 0x13; header[43] = 0x0B;
 
-        printf("Screenshot saved: %s (RPM=%.0f)\n", screenshot_path, screenshot_rpm);
+            FILE *fp = fopen(screenshot_path, "wb");
+            if (fp) {
+                fwrite(header, 1, 54, fp);
+                uint8_t pad_bytes[4] = {0};
+                for (int row = height - 1; row >= 0; row--) {
+                    const uint8_t *row_ptr = src + row * src_stride;
+                    for (int col = 0; col < width; col++) {
+                        uint8_t bgra[4];
+                        bgra[0] = row_ptr[col * 4 + 0];
+                        bgra[1] = row_ptr[col * 4 + 1];
+                        bgra[2] = row_ptr[col * 4 + 2];
+                        bgra[3] = row_ptr[col * 4 + 3];
+                        fwrite(bgra, 1, 4, fp);
+                    }
+                    if (padding) fwrite(pad_bytes, 1, padding, fp);
+                }
+                fclose(fp);
+                printf("Screenshot saved: %s (%dx%d, RPM=%.0f)\n", screenshot_path, width, height, screenshot_rpm);
+            } else {
+                printf("Error: could not open %s for writing\n", screenshot_path);
+            }
+            lv_snapshot_free((lv_image_dsc_t *)snapshot);
+        } else {
+            printf("Error: snapshot failed\n");
+        }
         return 0;
     }
 

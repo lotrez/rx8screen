@@ -13,12 +13,12 @@ void GearIndicator::create(lv_obj_t *parent) {
     ghost_label = lv_label_create(container);
     lv_label_set_text(ghost_label, "8");
     lv_obj_set_style_text_color(ghost_label, COLOR_DIGIT_OFF, 0);
-    lv_obj_set_style_text_font(ghost_label, &dseg7_classic_bold_italic_224, 0);
+    lv_obj_set_style_text_font(ghost_label, &dseg7_classic_bold_italic_280, 0);
 
     gear_label = lv_label_create(container);
     lv_label_set_text(gear_label, "N");
     lv_obj_set_style_text_color(gear_label, COLOR_ACCENT, 0);
-    lv_obj_set_style_text_font(gear_label, &dseg7_classic_bold_italic_224, 0);
+    lv_obj_set_style_text_font(gear_label, &dseg7_classic_bold_italic_280, 0);
     lv_obj_align(gear_label, LV_ALIGN_TOP_LEFT, 0, 0);
 }
 

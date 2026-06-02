@@ -18,7 +18,7 @@ void SpeedGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 8, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, -10);
 
     for (int i = 0; i < 3; i++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
@@ -29,21 +29,20 @@ void SpeedGauge::create(lv_obj_t *parent) {
         ghost_labels[i] = lv_label_create(slot);
         lv_label_set_text(ghost_labels[i], "8");
         lv_obj_set_style_text_color(ghost_labels[i], COLOR_DIGIT_OFF, 0);
-        lv_obj_set_style_text_font(ghost_labels[i], &dseg7_classic_bold_italic_72, 0);
+        lv_obj_set_style_text_font(ghost_labels[i], &dseg7_classic_bold_italic_80, 0);
 
         digit_labels[i] = lv_label_create(slot);
         lv_label_set_text(digit_labels[i], "0");
         lv_obj_set_style_text_color(digit_labels[i], COLOR_PRIMARY, 0);
-        lv_obj_set_style_text_font(digit_labels[i], &dseg7_classic_bold_italic_72, 0);
+        lv_obj_set_style_text_font(digit_labels[i], &dseg7_classic_bold_italic_80, 0);
         lv_obj_align(digit_labels[i], LV_ALIGN_CENTER, 0, 0);
     }
 
-    // texte
     unit_label = lv_label_create(container);
     lv_label_set_text(unit_label, "km/h");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(unit_label, &orbitron_bold_20, 0);
-    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 8, 6);
+    lv_obj_align(unit_label, LV_ALIGN_BOTTOM_MID, 0, 0);
 }
 
 void SpeedGauge::update(float kmh) {
