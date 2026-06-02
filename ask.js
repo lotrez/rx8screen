@@ -27,6 +27,9 @@ async function run() {
     },
     body: JSON.stringify({
       model: 'google/gemma-4-e4b',
+      temperature: 0.3,
+      top_p: 0.9,
+      top_k: 40,
       input: [
         { type: 'image', data_url: `data:image/${ext};base64,${imageBase64}` },
         { type: 'text', content: prompt },
