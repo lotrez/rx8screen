@@ -10,6 +10,7 @@
 #include "ui/water_temp_gauge.h"
 #include "ui/fuel_gauge.h"
 #include "ui/voltage_gauge.h"
+#include "ui/wankel_bg.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -41,37 +42,39 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0E), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
-    rpm_gauge.create(parent);
-    lv_obj_t *rpm_container = rpm_gauge.get_container();
-    lv_obj_set_size(rpm_container, 700, 200);
-    lv_obj_align(rpm_container, LV_ALIGN_BOTTOM_MID, 0, -40);
+    wankel_bg_create(parent);
 
     lv_obj_t *speed_card = lv_obj_create(parent);
     lv_obj_remove_style_all(speed_card);
-    lv_obj_set_style_bg_color(speed_card, lv_color_hex(0x0E0E12), 0);
-    lv_obj_set_style_bg_opa(speed_card, LV_OPA_COVER, 0);
-    lv_obj_set_style_radius(speed_card, 16, 0);
-    lv_obj_set_style_border_color(speed_card, lv_color_hex(0x222640), 0);
+    lv_obj_set_style_bg_color(speed_card, lv_color_hex(0x0C0C12), 0);
+    lv_obj_set_style_bg_opa(speed_card, LV_OPA_50, 0);
+    lv_obj_set_style_radius(speed_card, 20, 0);
+    lv_obj_set_style_border_color(speed_card, lv_color_hex(0x1E2240), 0);
     lv_obj_set_style_border_width(speed_card, 1, 0);
-    lv_obj_set_size(speed_card, 540, 260);
-    lv_obj_align(speed_card, LV_ALIGN_CENTER, 0, -60);
+    lv_obj_set_size(speed_card, 400, 200);
+    lv_obj_align(speed_card, LV_ALIGN_CENTER, 0, -30);
     lv_obj_clear_flag(speed_card, LV_OBJ_FLAG_SCROLLABLE);
 
     speed_gauge.create(speed_card);
     gear_indicator.create(speed_card);
-    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_BOTTOM_RIGHT, -16, -8);
+    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_BOTTOM_RIGHT, -12, -6);
+
+    rpm_gauge.create(parent);
+    lv_obj_t *rpm_container = rpm_gauge.get_container();
+    lv_obj_set_size(rpm_container, 700, 220);
+    lv_obj_align(rpm_container, LV_ALIGN_BOTTOM_MID, 0, -40);
 
     water_temp_gauge.create(parent);
-    lv_obj_set_size(water_temp_gauge.get_container(), 220, 80);
-    lv_obj_align(water_temp_gauge.get_container(), LV_ALIGN_TOP_LEFT, 16, 16);
+    lv_obj_set_size(water_temp_gauge.get_container(), 200, 70);
+    lv_obj_align(water_temp_gauge.get_container(), LV_ALIGN_TOP_LEFT, 160, 40);
 
     voltage_gauge.create(parent);
-    lv_obj_set_size(voltage_gauge.get_container(), 220, 80);
-    lv_obj_align(voltage_gauge.get_container(), LV_ALIGN_TOP_RIGHT, -16, 16);
+    lv_obj_set_size(voltage_gauge.get_container(), 200, 70);
+    lv_obj_align(voltage_gauge.get_container(), LV_ALIGN_TOP_RIGHT, -160, 40);
 
     fuel_gauge.create(parent);
-    lv_obj_set_size(fuel_gauge.get_container(), 220, 80);
-    lv_obj_align(fuel_gauge.get_container(), LV_ALIGN_BOTTOM_MID, 0, -16);
+    lv_obj_set_size(fuel_gauge.get_container(), 200, 70);
+    lv_obj_align(fuel_gauge.get_container(), LV_ALIGN_BOTTOM_MID, 0, -10);
 
     card_rpm = NULL;
     card_speed = speed_card;
