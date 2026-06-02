@@ -12,4 +12,5 @@ private:
     lv_obj_t *container = nullptr;
     lv_obj_t *value_label = nullptr;
     lv_obj_t *bar = nullptr;
+    lv_color_t gauge_color;
 };

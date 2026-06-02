@@ -39,7 +39,7 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
     static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t row_dsc[] = {LV_GRID_FR(45), LV_GRID_FR(20), LV_GRID_FR(35), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t row_dsc[] = {LV_GRID_FR(40), LV_GRID_FR(25), LV_GRID_FR(35), LV_GRID_TEMPLATE_LAST};
 
     lv_obj_t *grid = lv_obj_create(parent);
     lv_obj_remove_style_all(grid);
@@ -58,33 +58,31 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_pad_all(card_gauges, 0, 0);
     lv_obj_set_grid_cell(card_gauges, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 1, 1);
 
-    static lv_coord_t gauge_cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t gauge_rows[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
     lv_obj_t *gauge_grid = lv_obj_create(card_gauges);
     lv_obj_remove_style_all(gauge_grid);
     lv_obj_set_size(gauge_grid, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_layout(gauge_grid, LV_LAYOUT_GRID);
-    lv_obj_set_grid_dsc_array(gauge_grid, gauge_cols, gauge_rows);
+    lv_obj_set_flex_flow(gauge_grid, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(gauge_grid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_all(gauge_grid, 4, 0);
-    lv_obj_set_style_pad_column(gauge_grid, 8, 0);
+    lv_obj_set_style_pad_row(gauge_grid, 2, 0);
     lv_obj_clear_flag(gauge_grid, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *card_water = lv_obj_create(gauge_grid);
     lv_obj_remove_style_all(card_water);
     lv_obj_set_style_bg_opa(card_water, LV_OPA_TRANSP, 0);
-    lv_obj_set_grid_cell(card_water, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_size(card_water, LV_PCT(100), LV_PCT(33));
     water_temp_gauge.create(card_water);
 
     lv_obj_t *card_voltage = lv_obj_create(gauge_grid);
     lv_obj_remove_style_all(card_voltage);
     lv_obj_set_style_bg_opa(card_voltage, LV_OPA_TRANSP, 0);
-    lv_obj_set_grid_cell(card_voltage, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_size(card_voltage, LV_PCT(100), LV_PCT(33));
     voltage_gauge.create(card_voltage);
 
     lv_obj_t *card_fuel = lv_obj_create(gauge_grid);
     lv_obj_remove_style_all(card_fuel);
     lv_obj_set_style_bg_opa(card_fuel, LV_OPA_TRANSP, 0);
-    lv_obj_set_grid_cell(card_fuel, LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_size(card_fuel, LV_PCT(100), LV_PCT(33));
     fuel_gauge.create(card_fuel);
 
     card_rpm = create_card(grid);
