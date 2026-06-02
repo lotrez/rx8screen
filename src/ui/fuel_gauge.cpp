@@ -3,7 +3,7 @@
 
 void FuelGauge::create(lv_obj_t *parent) {
     gauge_color = lv_color_hex(0xE53935);
-    BarGaugeWidgets w = create_bar_gauge(parent, "FUEL", 0.0f, 100.0f, "%",
+    BarGaugeWidgets w = create_bar_gauge(parent, "Fuel", 0.0f, 100.0f, "%",
                                           gauge_color);
     container = w.container;
     value_label = w.value_label;

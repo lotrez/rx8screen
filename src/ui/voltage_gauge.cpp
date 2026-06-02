@@ -3,7 +3,7 @@
 
 void VoltageGauge::create(lv_obj_t *parent) {
     gauge_color = lv_color_hex(0xFFB700);
-    BarGaugeWidgets w = create_bar_gauge(parent, "BATTERY", 10.0f, 16.0f, "V",
+    BarGaugeWidgets w = create_bar_gauge(parent, "Battery", 10.0f, 16.0f, "V",
                                           gauge_color);
     container = w.container;
     value_label = w.value_label;
@@ -12,5 +12,5 @@ void VoltageGauge::create(lv_obj_t *parent) {
 
 void VoltageGauge::update(float volts) {
     BarGaugeWidgets w = {container, value_label, bar, gauge_color};
-    update_bar_gauge(w, volts, 14.5f, 11.5f, "V");
+    update_bar_gauge(w, volts, 13.0f, 11.5f, "V");
 }
