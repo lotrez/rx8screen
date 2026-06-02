@@ -74,32 +74,38 @@ static void band_draw_cb(lv_event_t *event) {
     bottom_bg.radius = CARD_RADIUS;
     lv_draw_rect(layer, &bottom_bg, &bottom_section);
 
-    int num_strips = 200;
-    float fill_x_start = card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1;
-    float fill_x_end = card_coords.x1 + card_w - BORDER_THICKNESS - FILL_INSET;
-    float total_width = fill_x_end - fill_x_start;
-    float strip_width = total_width / num_strips;
+    int num_segments = 40;
+    int gap = 3;
+    int fill_x_start = (int)(card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1);
+    int fill_x_end = (int)(card_coords.x1 + card_w - BORDER_THICKNESS - FILL_INSET);
+    int total_fill_width = fill_x_end - fill_x_start;
+    int total_gap = (num_segments - 1) * gap;
+    int seg_w = (total_fill_width - total_gap) / num_segments;
 
-    for (int strip = 0; strip < num_strips; strip++) {
-        float raw_x1 = fill_x_start + strip * strip_width;
-        float raw_x2 = fill_x_start + (strip + 1) * strip_width;
-        if (strip == num_strips - 1) raw_x2 = fill_x_end;
+    for (int seg = 0; seg < num_segments; seg++) {
+        int seg_x1 = fill_x_start + seg * (seg_w + gap);
+        int seg_x2 = seg_x1 + seg_w - 1;
+        if (seg == num_segments - 1) seg_x2 = fill_x_end - 1;
 
-        float position_mid = (raw_x1 + raw_x2) * 0.5f - fill_x_start;
-        position_mid /= total_width;
-        if (position_mid > active_position) break;
+        float seg_mid = (seg + 0.5f) / num_segments;
 
-        lv_color_t strip_color = gradient_color(position_mid);
+        lv_color_t seg_color;
+        if (seg_mid <= active_position) {
+            seg_color = gradient_color(seg_mid);
+        } else {
+            seg_color = COLOR_SEG_OFF;
+        }
 
         lv_area_t coords;
-        coords.x1 = (lv_coord_t)floorf(raw_x1);
-        coords.x2 = (lv_coord_t)ceilf(raw_x2);
+        coords.x1 = seg_x1;
+        coords.x2 = seg_x2;
         coords.y1 = fill_y_top;
         coords.y2 = fill_y_bottom;
 
         lv_draw_rect_dsc_t rect_descriptor;
         lv_draw_rect_dsc_init(&rect_descriptor);
-        rect_descriptor.bg_color = strip_color;
+        rect_descriptor.bg_color = seg_color;
+        rect_descriptor.radius = 2;
         lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
