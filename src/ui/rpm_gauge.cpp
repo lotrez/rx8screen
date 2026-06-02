@@ -7,30 +7,23 @@
 #include <stdio.h>
 
 static const float RPM_MAX = 11000.0f;
-static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x0D1A0D);
-static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
-static const lv_color_t COLOR_BORDER = lv_color_hex(0x00AA30);
+static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x141418);
+static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x16161E);
 
 static const int BORDER_THICKNESS = 2;
 static const int FILL_INSET = 0;
 
-static lv_color_t gradient_color(float position) {
-    uint8_t red, green, blue;
-    if (position < 0.5f) {
-        float fraction = position / 0.5f;
-        red = (uint8_t)(0x00 + (0xFF - 0x00) * fraction);
-        green = (uint8_t)(0xFF - (0xFF - 0xAA) * fraction);
-        blue = (uint8_t)(0x41 * (1.0f - fraction));
+static lv_color_t zone_color(float position) {
+    if (position < 0.75f) {
+        return lv_color_hex(0xE0E4F0);
+    } else if (position < 0.85f) {
+        return lv_color_hex(0xFFB700);
     } else {
-        float fraction = (position - 0.5f) / 0.5f;
-        red = 0xFF;
-        green = (uint8_t)(0xAA - (0xAA - 0x22) * fraction);
-        blue = (uint8_t)(0x22 * fraction);
+        return lv_color_hex(0xE53935);
     }
-    return lv_color_hex(((uint32_t)red << 16) | ((uint32_t)green << 8) | blue);
 }
 
-static const int CARD_RADIUS = 16;
+static const int CARD_RADIUS = 12;
 
 static void band_draw_cb(lv_event_t *event) {
     lv_layer_t *layer = lv_event_get_layer(event);
@@ -44,82 +37,48 @@ static void band_draw_cb(lv_event_t *event) {
     lv_coord_t card_w = lv_area_get_width(&card_coords);
     lv_coord_t card_h = lv_area_get_height(&card_coords);
 
-    int band_thickness = (int)(card_h * 0.18f);
+    int band_thickness = (int)(card_h * 0.55f);
     int band_y = card_coords.y1 + card_h - band_thickness;
 
-    int fill_y_top = band_y + BORDER_THICKNESS + FILL_INSET - 1;
-    int fill_y_bottom = card_coords.y2 - BORDER_THICKNESS - FILL_INSET;
+    int inset = 2;
+    int fill_x1 = card_coords.x1 + inset;
+    int fill_x2 = card_coords.x2 - inset;
+    int fill_y1 = band_y + inset;
+    int fill_y2 = card_coords.y2 - inset;
+    int fill_w = fill_x2 - fill_x1;
+    int radius = CARD_RADIUS - inset;
 
-    lv_area_t band_area;
-    band_area.x1 = card_coords.x1;
-    band_area.x2 = card_coords.x2;
-    band_area.y1 = band_y;
-    band_area.y2 = card_coords.y2;
+    lv_area_t track_area = {fill_x1, fill_y1, fill_x2, fill_y2};
+    lv_draw_rect_dsc_t track_dsc;
+    lv_draw_rect_dsc_init(&track_dsc);
+    track_dsc.bg_color = lv_color_hex(0x16161A);
+    track_dsc.radius = radius;
+    lv_draw_rect(layer, &track_dsc, &track_area);
 
-    lv_area_t top_section = band_area;
-    top_section.y2 = card_coords.y2 - CARD_RADIUS;
-
-    lv_area_t bottom_section = band_area;
-    bottom_section.y1 = card_coords.y2 - CARD_RADIUS;
-
-    int num_segments = 40;
-    int gap = 3;
-    int fill_x_start = (int)(card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1);
-    int fill_x_end = (int)(card_coords.x1 + card_w - BORDER_THICKNESS - FILL_INSET);
-    int total_fill_width = fill_x_end - fill_x_start;
+    int num_segments = 30;
+    int gap = 4;
     int total_gap = (num_segments - 1) * gap;
-    int seg_w = (total_fill_width - total_gap) / num_segments;
+    int seg_w = (fill_w - total_gap) / num_segments;
 
     for (int seg = 0; seg < num_segments; seg++) {
-        int seg_x1 = fill_x_start + seg * (seg_w + gap);
+        int seg_x1 = fill_x1 + seg * (seg_w + gap);
         int seg_x2 = seg_x1 + seg_w - 1;
-        if (seg == num_segments - 1) seg_x2 = fill_x_end - 1;
+        if (seg == num_segments - 1) seg_x2 = fill_x2;
 
         float seg_mid = (seg + 0.5f) / num_segments;
 
-        lv_color_t seg_color;
+        lv_area_t seg_area = {(lv_coord_t)seg_x1, fill_y1, (lv_coord_t)seg_x2, fill_y2};
+        lv_draw_rect_dsc_t seg_dsc;
+        lv_draw_rect_dsc_init(&seg_dsc);
+
         if (seg_mid <= active_position) {
-            seg_color = gradient_color(seg_mid);
+            seg_dsc.bg_color = zone_color(seg_mid);
         } else {
-            seg_color = COLOR_SEG_OFF;
+            seg_dsc.bg_color = lv_color_hex(0x1A1A20);
         }
-
-        lv_area_t coords;
-        coords.x1 = seg_x1;
-        coords.x2 = seg_x2;
-        coords.y1 = fill_y_top;
-        coords.y2 = fill_y_bottom;
-
-        lv_draw_rect_dsc_t rect_descriptor;
-        lv_draw_rect_dsc_init(&rect_descriptor);
-        rect_descriptor.bg_color = seg_color;
-        rect_descriptor.radius = 2;
-        lv_draw_rect(layer, &rect_descriptor, &coords);
+        seg_dsc.radius = 1;
+        lv_draw_rect(layer, &seg_dsc, &seg_area);
     }
-
-    lv_draw_rect_dsc_t border_dsc;
-    lv_draw_rect_dsc_init(&border_dsc);
-    border_dsc.bg_opa = LV_OPA_TRANSP;
-    border_dsc.border_color = COLOR_BORDER;
-    border_dsc.border_width = BORDER_THICKNESS;
-
-    lv_draw_rect_dsc_t top_border = border_dsc;
-    top_border.radius = 0;
-    top_border.border_side = (lv_border_side_t)(LV_BORDER_SIDE_TOP | LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT);
-    lv_draw_rect(layer, &top_border, &top_section);
-
-    lv_draw_rect_dsc_t bottom_border = border_dsc;
-    bottom_border.radius = CARD_RADIUS;
-    bottom_border.border_side = (lv_border_side_t)(LV_BORDER_SIDE_BOTTOM | LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT);
-    lv_draw_rect(layer, &bottom_border, &bottom_section);
-
-    lv_draw_rect_dsc_t card_border_dsc;
-    lv_draw_rect_dsc_init(&card_border_dsc);
-    card_border_dsc.bg_opa = LV_OPA_TRANSP;
-    card_border_dsc.border_color = lv_color_hex(0x00AA30);
-    card_border_dsc.border_width = 1;
-    card_border_dsc.radius = CARD_RADIUS;
-    lv_draw_rect(layer, &card_border_dsc, &card_coords);
 }
 
 void RpmGauge::create(lv_obj_t *parent) {
@@ -137,7 +96,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_align(digit_row, LV_ALIGN_TOP_LEFT, 16, 4);
 
     for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
@@ -148,20 +107,20 @@ void RpmGauge::create(lv_obj_t *parent) {
         ghost_labels[digit] = lv_label_create(slot);
         lv_label_set_text(ghost_labels[digit], "8");
         lv_obj_set_style_text_color(ghost_labels[digit], COLOR_DIGIT_OFF, 0);
-        lv_obj_set_style_text_font(ghost_labels[digit], &dseg7_classic_bold_italic_80, 0);
+        lv_obj_set_style_text_font(ghost_labels[digit], &dseg7_classic_bold_italic_64, 0);
 
         digit_labels[digit] = lv_label_create(slot);
         lv_label_set_text(digit_labels[digit], "0");
         lv_obj_set_style_text_color(digit_labels[digit], COLOR_ACCENT, 0);
-        lv_obj_set_style_text_font(digit_labels[digit], &dseg7_classic_bold_italic_80, 0);
+        lv_obj_set_style_text_font(digit_labels[digit], &dseg7_classic_bold_italic_64, 0);
         lv_obj_align(digit_labels[digit], LV_ALIGN_CENTER, 0, 0);
     }
 
     unit_label = lv_label_create(container);
     lv_label_set_text(unit_label, "RPM");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
-    lv_obj_set_style_text_font(unit_label, &orbitron_bold_20, 0);
-    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 12, 0);
+    lv_obj_set_style_text_font(unit_label, &orbitron_bold_10, 0);
+    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, 0);
 }
 
 void RpmGauge::update(float rpm) {
@@ -183,7 +142,7 @@ void RpmGauge::update(float rpm) {
     char digit_buf[2] = "0";
     float rpm_position = rpm / RPM_MAX;
     if (rpm_position > 1.0f) rpm_position = 1.0f;
-    lv_color_t active_color = gradient_color(rpm_position);
+    lv_color_t active_color = zone_color(rpm_position);
     for (int digit = 0; digit < 5; digit++) {
         bool is_active = (digit == 4) || (digit == 3 && rpm_value >= 10)
                        || (digit == 2 && rpm_value >= 100)

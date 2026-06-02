@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
+    "ai": "^6.0.194",
+    "ollama-ai-provider": "^1.2.0",
+    "openai": "^6.41.0"
+  }
+}

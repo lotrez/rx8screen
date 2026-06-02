@@ -2,7 +2,7 @@
 #include "gauge_common.h"
 #include "fonts/dseg7_fonts.h"
 
-static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
+static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x141418);
 
 void GearIndicator::create(lv_obj_t *parent) {
     container = lv_obj_create(parent);

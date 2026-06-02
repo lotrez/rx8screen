@@ -3,13 +3,14 @@
 #include <lvgl.h>
 #include "fonts/dseg7_fonts.h"
 
-static const lv_color_t COLOR_BG = lv_color_hex(0x0A0A0A);
-static const lv_color_t COLOR_PRIMARY = lv_color_hex(0x00FF41);
-static const lv_color_t COLOR_DIM = lv_color_hex(0x00AA30);
-static const lv_color_t COLOR_WARN = lv_color_hex(0xFFAA00);
-static const lv_color_t COLOR_CRIT = lv_color_hex(0xFF2222);
-static const lv_color_t COLOR_TRACK = lv_color_hex(0x1A1A1A);
-static const lv_color_t COLOR_ACCENT = lv_color_hex(0x00DDFF);
+static const lv_color_t COLOR_BG = lv_color_hex(0x0A0A0E);
+static const lv_color_t COLOR_PRIMARY = lv_color_hex(0xE0E4F0);
+static const lv_color_t COLOR_DIM = lv_color_hex(0x5A5E6A);
+static const lv_color_t COLOR_WARN = lv_color_hex(0xFFB700);
+static const lv_color_t COLOR_CRIT = lv_color_hex(0xE53935);
+static const lv_color_t COLOR_TRACK = lv_color_hex(0x16161A);
+static const lv_color_t COLOR_ACCENT = lv_color_hex(0xE0E4F0);
+static const lv_color_t COLOR_BORDER = lv_color_hex(0x1E2030);
 
 static inline void style_container(lv_obj_t *obj) {
     lv_obj_set_style_bg_color(obj, COLOR_BG, 0);
@@ -56,10 +57,10 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     w.value_label = lv_label_create(w.container);
     lv_label_set_text(w.value_label, "");
     lv_obj_set_style_text_color(w.value_label, COLOR_PRIMARY, 0);
-    lv_obj_set_style_text_font(w.value_label, &dseg7_classic_bold_20, 0);
+    lv_obj_set_style_text_font(w.value_label, &dseg7_classic_bold_24, 0);
 
     w.bar = lv_bar_create(w.container);
-    lv_obj_set_size(w.bar, LV_PCT(90), 10);
+    lv_obj_set_size(w.bar, LV_PCT(90), 14);
     lv_bar_set_range(w.bar, (int32_t)(min * 10), (int32_t)(max * 10));
     lv_bar_set_value(w.bar, (int32_t)(min * 10), LV_ANIM_OFF);
     lv_obj_set_style_bg_color(w.bar, COLOR_TRACK, LV_PART_MAIN);

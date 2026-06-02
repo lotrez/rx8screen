@@ -242,3 +242,100 @@ for (let x = 668; x <= 760; x += 4) {
 ```
 
 Do NOT show the user a broken result. Verify first.
+
+## AI Design Feedback Loop
+
+### Overview
+
+We use a local vision model (Gemma 4 E4B via LM Studio) as a UI/UX reviewer. The model receives screenshots of the dashboard and returns structured design critique, which drives iterative improvements.
+
+### Architecture
+
+```
+Code changes → Build (PlatformIO) → Screenshot (lv_snapshot_take → BMP) → PNG (sips)
+     ↑                                                                                    │
+     └───────── analyze.js (Node.js) ──── LM Studio API ──── Gemma 4 E4B (local) ────────┘
+```
+
+### Tools
+
+| Tool | Command | Purpose |
+|------|---------|---------|
+| Build | `/var/folders/.../pio-env/bin/pio run -e native_macos` | Compile native macOS simulator |
+| Screenshot | `.pio/build/native_macos/program --screenshot <rpm> <output.bmp>` | Capture current UI state as BMP |
+| Convert | `sips -s format png screenshot.bmp --out screenshot.png` | BMP → PNG for AI analysis |
+| Analyze | `node analyze.js screenshot.png [google\|ollama\|lmstudio]` | Send to vision model for critique |
+
+### LM Studio Setup
+
+- LM Studio runs locally with `google/gemma-4-e4b` (Q4_K_M, ~6.3GB)
+- API endpoint: `http://localhost:1234/api/v1/chat`
+- Auth: Bearer token required (`sk-lm-...`)
+- Model has vision capability (`capabilities.vision: true`)
+- The API is non-standard (uses `input` array with `type: "image"` + `data_url`, not OpenAI-compatible)
+
+### The Prompt (Critical)
+
+The prompt sent to the model is **not** a generic "rate my UI". It is a structured, constrained questionnaire:
+
+1. **VISUAL WEIGHT**: Does the hero element dominate? Are secondary elements appropriately subordinate? Forces the model to evaluate hierarchy, not just aesthetics.
+
+2. **COLOR AUDIT**: List every distinct color visible. Identify redundancy, inconsistency, or lack of meaning. Propose a tight 4-color palette if needed. This catches palette drift.
+
+3. **SPACING & ALIGNMENT**: Are elements centered? Is padding consistent? Any pixel-level misalignment? Forces the model to look at structure, not just vibes.
+
+4. **TOP 3 CHANGES**: If you could only change 3 things, what specifically? "Move X to Y" or "change color Z from A to B", not "improve the layout". This forces actionable output.
+
+5. **RATE**: Current score + predicted score after changes. Gives a progress metric across iterations.
+
+The prompt also includes constraints (ESP32, LVGL primitives only, no images/icons/gradients) so the model doesn't suggest impossible things.
+
+### Iteration Method
+
+1. Make code changes based on model feedback
+2. Build and screenshot
+3. Run `analyze.js` with the new screenshot
+4. Read the critique — focus on TOP 3 CHANGES (actionable) and COLOR AUDIT
+5. Implement the changes
+6. Repeat until the model rates 8+ and the predicted-after-changes score converges with current
+
+### Lessons Learned
+
+- **Local models are inconsistent**: The same screenshot can score 6/10 on one run and 7/10 on the next. Don't chase the score — look for consistent themes across runs.
+- **Models hallucinate previous state**: After multiple iterations, the model sometimes references elements that no longer exist (e.g., "the gear column" after it was removed). Each prompt should describe the current layout explicitly.
+- **Actionable > aspirational**: "Make the RPM bar segmented" is useful. "Add a rotary engine animation" is not (violates ESP32 constraints). The prompt's constraints section filters out bad suggestions.
+- **3 changes max**: Asking for 3 forces prioritization. More than 3 creates noise.
+- **Score as trend, not absolute**: A 6→7→8 trend is meaningful even if individual scores fluctuate by ±1.
+- **Pixel analysis first**: Always verify with BMP pixel reads before trusting the model's coordinates or color claims. Models are unreliable at exact pixel positions.
+- **Color audit is the most valuable section**: It catches palette creep — when you've accidentally introduced 7+ colors without realizing it. Tight palettes score higher.
+
+### Color Palette Evolution
+
+| Version | Palette | Score | Notes |
+|---------|---------|-------|-------|
+| v1 (green) | `#00FF41` primary, `#00AA30` dim, `#00DDFF` accent, `#00FF41` bars | 6.5 | "Too many neon colors", "generic hacker aesthetic" |
+| v2 (neutral) | `#C0C8D4` primary, `#444A54` dim, `#C0C8D4` accent | 6.0 | "Developer prototype", "no personality" |
+| v3-4 (blue-white) | `#E0E4F0` primary, `#4A4E5A` dim, unified accent | 7.0-8.0 | "Cohesive", "good hierarchy" — but inconsistent |
+| v5+ (zone colors) | `#E0E4F0` text, `#4CC085` safe, `#FFB700` warn, `#E53935` danger | 6.0-7.0 | Model prefers fewer colors; zone colors read as "too many" |
+
+### Key Constants (current)
+
+| Constant | Value | Where |
+|----------|-------|-------|
+| Display | 1024×600 | `platformio.ini` |
+| Grid | 3 cols `FR(1,1,1)`, 3 rows `FR(45,20,35)` | `src/main.cpp` |
+| Card radius | 12px | `src/main.cpp` |
+| Card bg | `#111116` | `src/main.cpp` |
+| Screen bg | `#0A0A0E` | `src/ui/gauge_common.h` |
+| Primary text | `#E0E4F0` | `src/ui/gauge_common.h` |
+| Dim text | `#4A4E5A` | `src/ui/gauge_common.h` |
+| Safe (green) | `#4CC085` | `src/ui/rpm_gauge.cpp` |
+| Warn (amber) | `#FFB700` | `src/ui/gauge_common.h` |
+| Danger (red) | `#E53935` | `src/ui/gauge_common.h` |
+| RPM track | `#16161A` | `src/ui/rpm_gauge.cpp` |
+| Ghost/off digits | `#16161E` | `src/ui/rpm_gauge.cpp` |
+| Speed font | DSEG7 Bold Italic 160px | `src/ui/speed_gauge.cpp` |
+| RPM font | DSEG7 Bold Italic 48px | `src/ui/rpm_gauge.cpp` |
+| Gear font | DSEG7 Bold Italic 48px | `src/ui/speed_gauge.cpp` |
+| Bar gauge font | DSEG7 Bold 24px | `src/ui/gauge_common.h` |
+| Label font | Orbitron Bold 14px | `src/ui/gauge_common.h` |
