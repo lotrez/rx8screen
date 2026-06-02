@@ -63,8 +63,8 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_size(gauge_grid, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(gauge_grid, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(gauge_grid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_all(gauge_grid, 4, 0);
-    lv_obj_set_style_pad_row(gauge_grid, 2, 0);
+    lv_obj_set_style_pad_all(gauge_grid, 0, 0);
+    lv_obj_set_style_pad_row(gauge_grid, 0, 0);
     lv_obj_clear_flag(gauge_grid, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *card_water = lv_obj_create(gauge_grid);

@@ -48,16 +48,16 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     w.container = lv_obj_create(parent);
     lv_obj_remove_style_all(w.container);
     lv_obj_set_size(w.container, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_flex_flow(w.container, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(w.container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(w.container, 8, 0);
     lv_obj_clear_flag(w.container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *text_col = lv_obj_create(w.container);
     lv_obj_remove_style_all(text_col);
-    lv_obj_set_size(text_col, 140, LV_SIZE_CONTENT);
+    lv_obj_set_size(text_col, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(text_col, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(text_col, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(text_col, 0, 0);
+    lv_obj_clear_flag(text_col, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align(text_col, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_set_style_pad_row(text_col, 0, 0);
     lv_obj_clear_flag(text_col, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -72,9 +72,8 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_style_text_font(w.value_label, &dseg7_classic_bold_24, 0);
 
     w.bar = lv_bar_create(w.container);
-    lv_obj_set_flex_grow(w.bar, 1);
-    lv_obj_set_style_min_width(w.bar, 40, 0);
-    lv_obj_set_height(w.bar, 18);
+    lv_obj_set_size(w.bar, LV_PCT(75), 18);
+    lv_obj_align(w.bar, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_bar_set_range(w.bar, (int32_t)(min * 10), (int32_t)(max * 10));
     lv_bar_set_value(w.bar, (int32_t)(min * 10), LV_ANIM_OFF);
     lv_obj_set_style_bg_color(w.bar, COLOR_TRACK, LV_PART_MAIN);
