@@ -8,7 +8,6 @@
 #include "ui/gear_indicator.h"
 #include "ui/gauge_common.h"
 #include "ui/water_temp_gauge.h"
-#include "ui/oil_temp_gauge.h"
 #include "ui/fuel_gauge.h"
 #include "ui/voltage_gauge.h"
 
@@ -19,12 +18,10 @@ static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
 static GearIndicator gear_indicator;
 static WaterTempGauge water_temp_gauge;
-static OilTempGauge oil_temp_gauge;
 static FuelGauge fuel_gauge;
 static VoltageGauge voltage_gauge;
 
 static lv_obj_t *card_rpm;
-static lv_obj_t *card_mid;
 static lv_obj_t *card_speed;
 static lv_obj_t *card_gear;
 
@@ -45,7 +42,7 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0A), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
-    static lv_coord_t col_dsc[] = {LV_GRID_FR(72), LV_GRID_FR(28), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t col_dsc[] = {LV_GRID_FR(24), LV_GRID_FR(24), LV_GRID_FR(24), LV_GRID_FR(28), LV_GRID_TEMPLATE_LAST};
     static lv_coord_t row_dsc[] = {LV_GRID_FR(38), LV_GRID_FR(24), LV_GRID_FR(38), LV_GRID_TEMPLATE_LAST};
 
     lv_obj_t *grid = lv_obj_create(parent);
@@ -61,33 +58,25 @@ static void create_dashboard(lv_obj_t *parent) {
     card_rpm = create_card(grid);
     lv_obj_set_style_pad_all(card_rpm, 0, 0);
     lv_obj_set_style_clip_corner(card_rpm, true, 0);
-    lv_obj_set_grid_cell(card_rpm, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+    lv_obj_set_grid_cell(card_rpm, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 0, 1);
 
-    card_mid = create_card(grid);
-    lv_obj_set_grid_cell(card_mid, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-    lv_obj_set_flex_flow(card_mid, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(card_mid, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_all(card_mid, 4, 0);
-    lv_obj_set_style_pad_column(card_mid, 4, 0);
-    lv_obj_clear_flag(card_mid, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *card_water = create_card(grid);
+    lv_obj_set_grid_cell(card_water, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    water_temp_gauge.create(card_water);
 
-    water_temp_gauge.create(card_mid);
-    lv_obj_set_width(water_temp_gauge.get_container(), LV_PCT(24));
+    lv_obj_t *card_voltage = create_card(grid);
+    lv_obj_set_grid_cell(card_voltage, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    voltage_gauge.create(card_voltage);
 
-    oil_temp_gauge.create(card_mid);
-    lv_obj_set_width(oil_temp_gauge.get_container(), LV_PCT(24));
-
-    voltage_gauge.create(card_mid);
-    lv_obj_set_width(voltage_gauge.get_container(), LV_PCT(24));
-
-    fuel_gauge.create(card_mid);
-    lv_obj_set_width(fuel_gauge.get_container(), LV_PCT(24));
+    lv_obj_t *card_fuel = create_card(grid);
+    lv_obj_set_grid_cell(card_fuel, LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
+    fuel_gauge.create(card_fuel);
 
     card_speed = create_card(grid);
-    lv_obj_set_grid_cell(card_speed, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
+    lv_obj_set_grid_cell(card_speed, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 2, 1);
 
     card_gear = create_card(grid);
-    lv_obj_set_grid_cell(card_gear, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 3);
+    lv_obj_set_grid_cell(card_gear, LV_GRID_ALIGN_STRETCH, 3, 1, LV_GRID_ALIGN_STRETCH, 0, 3);
 
     rpm_gauge.create(card_rpm);
     lv_obj_set_size(rpm_gauge.get_container(), LV_PCT(100), LV_PCT(100));
@@ -265,9 +254,6 @@ static void update_simulation() {
     if (sim_water_temp > 110.0f) sim_water_temp = 110.0f;
     water_temp_gauge.update(sim_water_temp);
 
-    float sim_oil_temp = sim_water_temp + 8.0f + sinf(sim_tick * 0.01f) * 3.0f;
-    oil_temp_gauge.update(sim_oil_temp);
-
     float sim_voltage = 12.8f + (sim_rpm > 1000.0f ? 1.4f : 0.0f) + sinf(sim_tick * 0.05f) * 0.2f;
     voltage_gauge.update(sim_voltage);
 
@@ -294,7 +280,6 @@ int main(int argc, char **argv) {
         rpm_gauge.update(screenshot_rpm);
         speed_gauge.update(80);
         water_temp_gauge.update(92.0f);
-        oil_temp_gauge.update(98.0f);
         voltage_gauge.update(13.8f);
         fuel_gauge.update(65.0f);
         gear_indicator.update(2);
