@@ -3,7 +3,7 @@
 
 void WaterTempGauge::create(lv_obj_t *parent) {
     gauge_color = lv_color_hex(0x4CC085);
-    BarGaugeWidgets w = create_bar_gauge(parent, "Water Temp", 60.0f, 130.0f, "\xC2\xB0""C",
+    BarGaugeWidgets w = create_bar_gauge(parent, "WATER TEMP", 60.0f, 130.0f, "\xC2\xB0""C",
                                           gauge_color);
     container = w.container;
     value_label = w.value_label;
