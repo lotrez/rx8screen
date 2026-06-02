@@ -5,13 +5,12 @@
 static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
 
 void SpeedGauge::create(lv_obj_t *parent) {
-    // container
     container = lv_obj_create(parent);
     style_container(container);
     lv_obj_set_style_border_width(container, 0, 0);
+    lv_obj_set_size(container, LV_PCT(100), LV_PCT(100));
     lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
-    // texte
     lv_obj_t *digit_row = lv_obj_create(container);
     lv_obj_remove_style_all(digit_row);
     lv_obj_set_size(digit_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -19,6 +18,7 @@ void SpeedGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 8, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, -8);
 
     for (int i = 0; i < 3; i++) {
         lv_obj_t *slot = lv_obj_create(digit_row);

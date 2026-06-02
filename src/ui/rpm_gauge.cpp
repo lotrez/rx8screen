@@ -259,13 +259,11 @@ static void band_draw_cb(lv_event_t *event) {
 void RpmGauge::create(lv_obj_t *parent) {
     container = lv_obj_create(parent);
     lv_obj_remove_style_all(container);
-    lv_obj_set_size(container, SCREEN_WIDTH, SCREEN_HEIGHT);
-    lv_obj_set_pos(container, 0, 0);
+    lv_obj_set_size(container, LV_PCT(100), LV_PCT(100));
     lv_obj_clear_flag(container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_add_event_cb(container, band_draw_cb, LV_EVENT_DRAW_MAIN, this);
 
-    // Flex row container for the 5 RPM digit slots
     lv_obj_t *digit_row = lv_obj_create(container);
     lv_obj_remove_style_all(digit_row);
     lv_obj_set_size(digit_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -273,7 +271,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_BOTTOM_LEFT, 38, -(lv_coord_t)(BAND_THICKNESS + MARGIN + 25));
+    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, 0);
 
     for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
