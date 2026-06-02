@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 static const float RPM_MAX = 11000.0f;
-static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x1A1A1A);
+static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x0D1A0D);
 static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
 static const lv_color_t COLOR_BORDER = lv_color_hex(0x00AA30);
 
@@ -61,18 +61,6 @@ static void band_draw_cb(lv_event_t *event) {
 
     lv_area_t bottom_section = band_area;
     bottom_section.y1 = card_coords.y2 - CARD_RADIUS;
-
-    lv_draw_rect_dsc_t bg_dsc;
-    lv_draw_rect_dsc_init(&bg_dsc);
-    bg_dsc.bg_color = COLOR_SEG_OFF;
-
-    lv_draw_rect_dsc_t top_bg = bg_dsc;
-    top_bg.radius = 0;
-    lv_draw_rect(layer, &top_bg, &top_section);
-
-    lv_draw_rect_dsc_t bottom_bg = bg_dsc;
-    bottom_bg.radius = CARD_RADIUS;
-    lv_draw_rect(layer, &bottom_bg, &bottom_section);
 
     int num_segments = 40;
     int gap = 3;
