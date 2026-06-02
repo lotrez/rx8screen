@@ -5,6 +5,7 @@
 #include <SDL.h>
 #include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
+#include "ui/gear_indicator.h"
 #include "ui/gauge_common.h"
 #include "ui/water_temp_gauge.h"
 #include "ui/fuel_gauge.h"
@@ -15,11 +16,12 @@
 
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
+static GearIndicator gear_indicator;
 static WaterTempGauge water_temp_gauge;
 static FuelGauge fuel_gauge;
 static VoltageGauge voltage_gauge;
 
-static lv_obj_t *card_rpm;
+static lv_obj_t *card_rpm = NULL;
 static lv_obj_t *card_speed;
 
 static lv_obj_t *create_card(lv_obj_t *parent) {
@@ -39,62 +41,40 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0E), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
-    static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t row_dsc[] = {LV_GRID_FR(50), LV_GRID_FR(25), LV_GRID_FR(25), LV_GRID_TEMPLATE_LAST};
+    rpm_gauge.create(parent);
+    lv_obj_t *rpm_container = rpm_gauge.get_container();
+    lv_obj_set_size(rpm_container, 700, 200);
+    lv_obj_align(rpm_container, LV_ALIGN_BOTTOM_MID, 0, -40);
 
-    lv_obj_t *grid = lv_obj_create(parent);
-    lv_obj_remove_style_all(grid);
-    lv_obj_set_size(grid, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-    lv_obj_set_layout(grid, LV_LAYOUT_GRID);
-    lv_obj_set_grid_dsc_array(grid, col_dsc, row_dsc);
-    lv_obj_set_style_pad_all(grid, 12, 0);
-    lv_obj_set_style_pad_row(grid, 12, 0);
-    lv_obj_set_style_pad_column(grid, 12, 0);
-    lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *speed_card = lv_obj_create(parent);
+    lv_obj_remove_style_all(speed_card);
+    lv_obj_set_style_bg_color(speed_card, lv_color_hex(0x0E0E12), 0);
+    lv_obj_set_style_bg_opa(speed_card, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(speed_card, 16, 0);
+    lv_obj_set_style_border_color(speed_card, lv_color_hex(0x222640), 0);
+    lv_obj_set_style_border_width(speed_card, 1, 0);
+    lv_obj_set_size(speed_card, 540, 260);
+    lv_obj_align(speed_card, LV_ALIGN_CENTER, 0, -60);
+    lv_obj_clear_flag(speed_card, LV_OBJ_FLAG_SCROLLABLE);
 
-    card_speed = create_card(grid);
-    lv_obj_set_grid_cell(card_speed, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 0, 1);
+    speed_gauge.create(speed_card);
+    gear_indicator.create(speed_card);
+    lv_obj_align(gear_indicator.get_container(), LV_ALIGN_BOTTOM_RIGHT, -16, -8);
 
-    lv_obj_t *card_gauges = create_card(grid);
-    lv_obj_set_style_pad_all(card_gauges, 0, 0);
-    lv_obj_set_grid_cell(card_gauges, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 1, 1);
+    water_temp_gauge.create(parent);
+    lv_obj_set_size(water_temp_gauge.get_container(), 220, 80);
+    lv_obj_align(water_temp_gauge.get_container(), LV_ALIGN_TOP_LEFT, 16, 16);
 
-    lv_obj_t *gauge_grid = lv_obj_create(card_gauges);
-    lv_obj_remove_style_all(gauge_grid);
-    lv_obj_set_size(gauge_grid, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_flex_flow(gauge_grid, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(gauge_grid, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_all(gauge_grid, 4, 0);
-    lv_obj_set_style_pad_row(gauge_grid, 2, 0);
-    lv_obj_clear_flag(gauge_grid, LV_OBJ_FLAG_SCROLLABLE);
+    voltage_gauge.create(parent);
+    lv_obj_set_size(voltage_gauge.get_container(), 220, 80);
+    lv_obj_align(voltage_gauge.get_container(), LV_ALIGN_TOP_RIGHT, -16, 16);
 
-    lv_obj_t *card_water = lv_obj_create(gauge_grid);
-    lv_obj_remove_style_all(card_water);
-    lv_obj_set_style_bg_opa(card_water, LV_OPA_TRANSP, 0);
-    lv_obj_set_size(card_water, LV_PCT(100), LV_PCT(33));
-    water_temp_gauge.create(card_water);
+    fuel_gauge.create(parent);
+    lv_obj_set_size(fuel_gauge.get_container(), 220, 80);
+    lv_obj_align(fuel_gauge.get_container(), LV_ALIGN_BOTTOM_MID, 0, -16);
 
-    lv_obj_t *card_voltage = lv_obj_create(gauge_grid);
-    lv_obj_remove_style_all(card_voltage);
-    lv_obj_set_style_bg_opa(card_voltage, LV_OPA_TRANSP, 0);
-    lv_obj_set_size(card_voltage, LV_PCT(100), LV_PCT(33));
-    voltage_gauge.create(card_voltage);
-
-    lv_obj_t *card_fuel = lv_obj_create(gauge_grid);
-    lv_obj_remove_style_all(card_fuel);
-    lv_obj_set_style_bg_opa(card_fuel, LV_OPA_TRANSP, 0);
-    lv_obj_set_size(card_fuel, LV_PCT(100), LV_PCT(33));
-    fuel_gauge.create(card_fuel);
-
-    card_rpm = create_card(grid);
-    lv_obj_set_style_pad_all(card_rpm, 0, 0);
-    lv_obj_set_style_clip_corner(card_rpm, true, 0);
-    lv_obj_set_grid_cell(card_rpm, LV_GRID_ALIGN_STRETCH, 0, 3, LV_GRID_ALIGN_STRETCH, 2, 1);
-
-    speed_gauge.create(card_speed);
-
-    rpm_gauge.create(card_rpm);
-    lv_obj_set_size(rpm_gauge.get_container(), LV_PCT(100), LV_PCT(100));
+    card_rpm = NULL;
+    card_speed = speed_card;
 }
 
 static uint32_t sim_tick = 0;
@@ -257,7 +237,7 @@ static void update_simulation() {
 
     rpm_gauge.update(sim_rpm);
     speed_gauge.update(sim_speed);
-    speed_gauge.update_gear(sim_current_gear);
+    gear_indicator.update(sim_current_gear);
 
     float rpm_pct = sim_rpm / REDLINE;
     if (rpm_pct < 0.0f) rpm_pct = 0.0f;
@@ -297,7 +277,7 @@ int main(int argc, char **argv) {
 
         rpm_gauge.update(screenshot_rpm);
         speed_gauge.update(80);
-        speed_gauge.update_gear(2);
+        gear_indicator.update(2);
         water_temp_gauge.update(92.0f);
         voltage_gauge.update(13.8f);
         fuel_gauge.update(65.0f);

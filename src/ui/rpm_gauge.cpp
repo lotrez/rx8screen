@@ -7,72 +7,65 @@
 #include <stdio.h>
 
 static const float RPM_MAX = 11000.0f;
-static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x141418);
-static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x16161E);
-
-static const int BORDER_THICKNESS = 2;
-static const int FILL_INSET = 0;
-
 static lv_color_t zone_color(float position) {
-    if (position < 0.75f) {
-        return lv_color_hex(0xE0E4F0);
-    } else if (position < 0.85f) {
-        return lv_color_hex(0xFFB700);
-    } else {
-        return lv_color_hex(0xE53935);
-    }
+    if (position < 0.75f) return lv_color_hex(0xE0E4F0);
+    else if (position < 0.85f) return lv_color_hex(0xFFB700);
+    else return lv_color_hex(0xE53935);
 }
 
-static const int CARD_RADIUS = 12;
+static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x16161E);
 
 static void band_draw_cb(lv_event_t *event) {
     lv_layer_t *layer = lv_event_get_layer(event);
     lv_obj_t *container = (lv_obj_t *)lv_event_get_target(event);
     RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(event);
     float active_position = gauge->get_active_t();
+    if (active_position > 1.0f) active_position = 1.0f;
 
-    lv_obj_t *card = lv_obj_get_parent(container);
-    lv_area_t card_coords;
-    lv_obj_get_coords(card, &card_coords);
-    lv_coord_t card_w = lv_area_get_width(&card_coords);
-    lv_coord_t card_h = lv_area_get_height(&card_coords);
+    lv_area_t container_coords;
+    lv_obj_get_coords(container, &container_coords);
+    int cx = container_coords.x1 + (lv_area_get_width(&container_coords) / 2);
+    int cy = container_coords.y1 + 100;
+    int arc_radius = 280;
+    int arc_width = 18;
 
-    int band_thickness = (int)(card_h * 0.55f);
-    int band_y = card_coords.y1 + card_h - band_thickness;
+    lv_draw_arc_dsc_t arc_dsc;
+    lv_draw_arc_dsc_init(&arc_dsc);
+    arc_dsc.width = arc_width;
+    arc_dsc.rounded = 0;
+    arc_dsc.center.x = cx;
+    arc_dsc.center.y = cy;
+    arc_dsc.radius = arc_radius;
 
-    int inset = 2;
-    int fill_x1 = card_coords.x1 + inset;
-    int fill_x2 = card_coords.x2 - inset;
-    int fill_y1 = band_y + inset;
-    int fill_y2 = card_coords.y2 - inset;
-    int fill_w = fill_x2 - fill_x1;
-    int radius = CARD_RADIUS - inset;
-
-    lv_area_t track_area = {fill_x1, fill_y1, fill_x2, fill_y2};
-    lv_draw_rect_dsc_t track_dsc;
-    lv_draw_rect_dsc_init(&track_dsc);
-    track_dsc.bg_color = lv_color_hex(0x16161A);
-    track_dsc.radius = radius;
-    lv_draw_rect(layer, &track_dsc, &track_area);
+    arc_dsc.color = lv_color_hex(0x16161A);
+    arc_dsc.start_angle = 1350;
+    arc_dsc.end_angle = 2250;
+    lv_draw_arc(layer, &arc_dsc);
 
     if (active_position > 0.0f) {
-        int active_x = fill_x1 + (int)(fill_w * active_position);
+        int16_t arc_span = 2250 - 1350;
+        int16_t end_angle = (int16_t)(1350 + arc_span * active_position);
 
         lv_color_t fill_color;
-        if (active_position < 0.75f) {
-            fill_color = lv_color_hex(0xE0E4F0);
-        } else if (active_position < 0.85f) {
-            fill_color = lv_color_hex(0xFFB700);
-        } else {
-            fill_color = lv_color_hex(0xE53935);
-        }
+        if (active_position < 0.75f) fill_color = lv_color_hex(0xE0E4F0);
+        else if (active_position < 0.85f) fill_color = lv_color_hex(0xFFB700);
+        else fill_color = lv_color_hex(0xE53935);
 
-        lv_area_t fill_area = {(lv_coord_t)fill_x1, fill_y1, (lv_coord_t)active_x, fill_y2};
-        lv_draw_rect_dsc_t fill_dsc;
-        lv_draw_rect_dsc_init(&fill_dsc);
-        fill_dsc.bg_color = fill_color;
-        fill_dsc.radius = radius;
-        lv_draw_rect(layer, &fill_dsc, &fill_area);
+        arc_dsc.color = fill_color;
+        arc_dsc.end_angle = end_angle;
+        lv_draw_arc(layer, &arc_dsc);
+    }
+
+    int16_t marker_angles[] = {1760, 1960};
+    lv_color_t marker_colors[] = {lv_color_hex(0xFFB700), lv_color_hex(0xE53935)};
+    int marker_width = 4;
+    arc_dsc.width = marker_width;
+    for (int m = 0; m < 2; m++) {
+        arc_dsc.color = marker_colors[m];
+        arc_dsc.start_angle = marker_angles[m] - 10;
+        arc_dsc.end_angle = marker_angles[m] + 10;
+        arc_dsc.radius = arc_radius + 3;
+        lv_draw_arc(layer, &arc_dsc);
     }
 }
 
@@ -91,7 +84,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_obj_set_flex_align(digit_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(digit_row, 6, 0);
     lv_obj_clear_flag(digit_row, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_align(digit_row, LV_ALIGN_RIGHT_MID, -16, -4);
+    lv_obj_align(digit_row, LV_ALIGN_CENTER, 0, -50);
 
     for (int digit = 0; digit < 5; digit++) {
         lv_obj_t *slot = lv_obj_create(digit_row);
@@ -115,7 +108,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     lv_label_set_text(unit_label, "RPM");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(unit_label, &orbitron_bold_14, 0);
-    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, 0);
+    lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 8, 0);
 }
 
 void RpmGauge::update(float rpm) {
