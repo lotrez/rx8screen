@@ -36,7 +36,7 @@ static lv_obj_t *create_card(lv_obj_t *parent) {
 }
 
 static void create_dashboard(lv_obj_t *parent) {
-    lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0A), 0);
+    lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0E), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
     static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -259,6 +259,14 @@ static void update_simulation() {
     speed_gauge.update(sim_speed);
     speed_gauge.update_gear(sim_current_gear);
 
+    float rpm_pct = sim_rpm / REDLINE;
+    if (rpm_pct < 0.0f) rpm_pct = 0.0f;
+    if (rpm_pct > 1.0f) rpm_pct = 1.0f;
+    uint8_t r = (uint8_t)(0x0A + (0x14 - 0x0A) * rpm_pct);
+    uint8_t g = (uint8_t)(0x0A + (0x0C - 0x0A) * rpm_pct);
+    uint8_t b = (uint8_t)(0x0E + (0x06 - 0x0E) * rpm_pct);
+    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex((r << 16) | (g << 8) | b), 0);
+
     float sim_water_temp = 82.0f + sim_phase_tick * 0.02f;
     if (sim_water_temp > 105.0f) sim_water_temp = 105.0f - (sim_water_temp - 105.0f) * 0.5f;
     if (sim_water_temp > 110.0f) sim_water_temp = 110.0f;
@@ -293,6 +301,14 @@ int main(int argc, char **argv) {
         water_temp_gauge.update(92.0f);
         voltage_gauge.update(13.8f);
         fuel_gauge.update(65.0f);
+
+        float rpm_pct = screenshot_rpm / 11000.0f;
+        if (rpm_pct > 1.0f) rpm_pct = 1.0f;
+        if (rpm_pct < 0.0f) rpm_pct = 0.0f;
+        uint8_t r = (uint8_t)(0x0A + (0x14 - 0x0A) * rpm_pct);
+        uint8_t g = (uint8_t)(0x0A + (0x0C - 0x0A) * rpm_pct);
+        uint8_t b = (uint8_t)(0x0E + (0x06 - 0x0E) * rpm_pct);
+        lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex((r << 16) | (g << 8) | b), 0);
 
         for (int frame = 0; frame < 5; frame++) {
             lv_timer_handler();
