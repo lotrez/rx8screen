@@ -39,7 +39,7 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
 
     static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static lv_coord_t row_dsc[] = {LV_GRID_FR(40), LV_GRID_FR(25), LV_GRID_FR(35), LV_GRID_TEMPLATE_LAST};
+    static lv_coord_t row_dsc[] = {LV_GRID_FR(45), LV_GRID_FR(25), LV_GRID_FR(30), LV_GRID_TEMPLATE_LAST};
 
     lv_obj_t *grid = lv_obj_create(parent);
     lv_obj_remove_style_all(grid);

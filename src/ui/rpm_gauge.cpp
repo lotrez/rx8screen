@@ -55,8 +55,8 @@ static void band_draw_cb(lv_event_t *event) {
     track_dsc.radius = radius;
     lv_draw_rect(layer, &track_dsc, &track_area);
 
-    int num_segments = 30;
-    int gap = 4;
+    int num_segments = 20;
+    int gap = 5;
     int total_gap = (num_segments - 1) * gap;
     int seg_w = (fill_w - total_gap) / num_segments;
 
