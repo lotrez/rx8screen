@@ -48,7 +48,7 @@ static void band_draw_cb(lv_event_t *event) {
     int band_y = card_coords.y1 + card_h - band_thickness;
 
     int fill_y_top = band_y + BORDER_THICKNESS + FILL_INSET - 1;
-    int fill_y_bottom = card_coords.y1 + card_h - BORDER_THICKNESS - FILL_INSET;
+    int fill_y_bottom = card_coords.y2 - BORDER_THICKNESS - FILL_INSET;
 
     lv_area_t band_area;
     band_area.x1 = card_coords.x1;
@@ -56,11 +56,23 @@ static void band_draw_cb(lv_event_t *event) {
     band_area.y1 = band_y;
     band_area.y2 = card_coords.y2;
 
+    lv_area_t top_section = band_area;
+    top_section.y2 = card_coords.y2 - CARD_RADIUS;
+
+    lv_area_t bottom_section = band_area;
+    bottom_section.y1 = card_coords.y2 - CARD_RADIUS;
+
     lv_draw_rect_dsc_t bg_dsc;
     lv_draw_rect_dsc_init(&bg_dsc);
     bg_dsc.bg_color = COLOR_SEG_OFF;
-    bg_dsc.radius = CARD_RADIUS;
-    lv_draw_rect(layer, &bg_dsc, &band_area);
+
+    lv_draw_rect_dsc_t top_bg = bg_dsc;
+    top_bg.radius = 0;
+    lv_draw_rect(layer, &top_bg, &top_section);
+
+    lv_draw_rect_dsc_t bottom_bg = bg_dsc;
+    bottom_bg.radius = CARD_RADIUS;
+    lv_draw_rect(layer, &bottom_bg, &bottom_section);
 
     int num_strips = 200;
     float fill_x_start = card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1;
@@ -96,8 +108,16 @@ static void band_draw_cb(lv_event_t *event) {
     border_dsc.bg_opa = LV_OPA_TRANSP;
     border_dsc.border_color = COLOR_BORDER;
     border_dsc.border_width = BORDER_THICKNESS;
-    border_dsc.radius = CARD_RADIUS;
-    lv_draw_rect(layer, &border_dsc, &band_area);
+
+    lv_draw_rect_dsc_t top_border = border_dsc;
+    top_border.radius = 0;
+    top_border.border_side = (lv_border_side_t)(LV_BORDER_SIDE_TOP | LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT);
+    lv_draw_rect(layer, &top_border, &top_section);
+
+    lv_draw_rect_dsc_t bottom_border = border_dsc;
+    bottom_border.radius = CARD_RADIUS;
+    bottom_border.border_side = (lv_border_side_t)(LV_BORDER_SIDE_BOTTOM | LV_BORDER_SIDE_LEFT | LV_BORDER_SIDE_RIGHT);
+    lv_draw_rect(layer, &bottom_border, &bottom_section);
 
     lv_draw_rect_dsc_t card_border_dsc;
     lv_draw_rect_dsc_init(&card_border_dsc);
