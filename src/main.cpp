@@ -60,6 +60,7 @@ static void create_dashboard(lv_obj_t *parent) {
 
     card_rpm = create_card(grid);
     lv_obj_set_style_pad_all(card_rpm, 0, 0);
+    lv_obj_set_style_clip_corner(card_rpm, true, 0);
     lv_obj_set_grid_cell(card_rpm, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
     card_mid = create_card(grid);

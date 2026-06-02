@@ -30,28 +30,41 @@ static lv_color_t gradient_color(float position) {
     return lv_color_hex(((uint32_t)red << 16) | ((uint32_t)green << 8) | blue);
 }
 
+static const int CARD_RADIUS = 16;
+
 static void band_draw_cb(lv_event_t *event) {
     lv_layer_t *layer = lv_event_get_layer(event);
     lv_obj_t *container = (lv_obj_t *)lv_event_get_target(event);
     RpmGauge *gauge = (RpmGauge *)lv_event_get_user_data(event);
     float active_position = gauge->get_active_t();
 
-    lv_area_t container_coords;
-    lv_obj_get_coords(container, &container_coords);
-    lv_coord_t card_x = container_coords.x1;
-    lv_coord_t card_y = container_coords.y1;
-    lv_coord_t card_w = lv_area_get_width(&container_coords);
-    lv_coord_t card_h = lv_area_get_height(&container_coords);
+    lv_obj_t *card = lv_obj_get_parent(container);
+    lv_area_t card_coords;
+    lv_obj_get_coords(card, &card_coords);
+    lv_coord_t card_w = lv_area_get_width(&card_coords);
+    lv_coord_t card_h = lv_area_get_height(&card_coords);
 
     int band_thickness = (int)(card_h * 0.18f);
-    int band_y = card_y + card_h - band_thickness;
+    int band_y = card_coords.y1 + card_h - band_thickness;
 
     int fill_y_top = band_y + BORDER_THICKNESS + FILL_INSET - 1;
-    int fill_y_bottom = card_y + card_h - BORDER_THICKNESS - FILL_INSET;
+    int fill_y_bottom = card_coords.y1 + card_h - BORDER_THICKNESS - FILL_INSET;
+
+    lv_area_t band_area;
+    band_area.x1 = card_coords.x1;
+    band_area.x2 = card_coords.x2;
+    band_area.y1 = band_y;
+    band_area.y2 = card_coords.y2;
+
+    lv_draw_rect_dsc_t bg_dsc;
+    lv_draw_rect_dsc_init(&bg_dsc);
+    bg_dsc.bg_color = COLOR_SEG_OFF;
+    bg_dsc.radius = CARD_RADIUS;
+    lv_draw_rect(layer, &bg_dsc, &band_area);
 
     int num_strips = 200;
-    float fill_x_start = card_x + BORDER_THICKNESS + FILL_INSET - 1;
-    float fill_x_end = card_x + card_w - BORDER_THICKNESS - FILL_INSET;
+    float fill_x_start = card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1;
+    float fill_x_end = card_coords.x1 + card_w - BORDER_THICKNESS - FILL_INSET;
     float total_width = fill_x_end - fill_x_start;
     float strip_width = total_width / num_strips;
 
@@ -62,7 +75,9 @@ static void band_draw_cb(lv_event_t *event) {
 
         float position_mid = (raw_x1 + raw_x2) * 0.5f - fill_x_start;
         position_mid /= total_width;
-        lv_color_t strip_color = (position_mid <= active_position) ? gradient_color(position_mid) : COLOR_SEG_OFF;
+        if (position_mid > active_position) break;
+
+        lv_color_t strip_color = gradient_color(position_mid);
 
         lv_area_t coords;
         coords.x1 = (lv_coord_t)floorf(raw_x1);
@@ -76,34 +91,21 @@ static void band_draw_cb(lv_event_t *event) {
         lv_draw_rect(layer, &rect_descriptor, &coords);
     }
 
-    lv_draw_line_dsc_t line_descriptor;
-    lv_draw_line_dsc_init(&line_descriptor);
-    line_descriptor.color = COLOR_BORDER;
-    line_descriptor.width = BORDER_THICKNESS;
+    lv_draw_rect_dsc_t border_dsc;
+    lv_draw_rect_dsc_init(&border_dsc);
+    border_dsc.bg_opa = LV_OPA_TRANSP;
+    border_dsc.border_color = COLOR_BORDER;
+    border_dsc.border_width = BORDER_THICKNESS;
+    border_dsc.radius = CARD_RADIUS;
+    lv_draw_rect(layer, &border_dsc, &band_area);
 
-    line_descriptor.p1.x = card_x;
-    line_descriptor.p1.y = band_y;
-    line_descriptor.p2.x = card_x + card_w;
-    line_descriptor.p2.y = band_y;
-    lv_draw_line(layer, &line_descriptor);
-
-    line_descriptor.p1.x = card_x;
-    line_descriptor.p1.y = card_y + card_h;
-    line_descriptor.p2.x = card_x + card_w;
-    line_descriptor.p2.y = card_y + card_h;
-    lv_draw_line(layer, &line_descriptor);
-
-    line_descriptor.p1.x = card_x;
-    line_descriptor.p1.y = band_y;
-    line_descriptor.p2.x = card_x;
-    line_descriptor.p2.y = card_y + card_h;
-    lv_draw_line(layer, &line_descriptor);
-
-    line_descriptor.p1.x = card_x + card_w;
-    line_descriptor.p1.y = band_y;
-    line_descriptor.p2.x = card_x + card_w;
-    line_descriptor.p2.y = card_y + card_h;
-    lv_draw_line(layer, &line_descriptor);
+    lv_draw_rect_dsc_t card_border_dsc;
+    lv_draw_rect_dsc_init(&card_border_dsc);
+    card_border_dsc.bg_opa = LV_OPA_TRANSP;
+    card_border_dsc.border_color = lv_color_hex(0x00AA30);
+    card_border_dsc.border_width = 1;
+    card_border_dsc.radius = CARD_RADIUS;
+    lv_draw_rect(layer, &card_border_dsc, &card_coords);
 }
 
 void RpmGauge::create(lv_obj_t *parent) {
