@@ -114,7 +114,7 @@ void RpmGauge::create(lv_obj_t *parent) {
     unit_label = lv_label_create(container);
     lv_label_set_text(unit_label, "RPM");
     lv_obj_set_style_text_color(unit_label, COLOR_DIM, 0);
-    lv_obj_set_style_text_font(unit_label, &orbitron_bold_10, 0);
+    lv_obj_set_style_text_font(unit_label, &orbitron_bold_14, 0);
     lv_obj_align_to(unit_label, digit_row, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, 0);
 }
 
