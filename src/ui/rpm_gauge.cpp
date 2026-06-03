@@ -62,39 +62,35 @@ static void band_draw_cb(lv_event_t *event) {
     lv_area_t bottom_section = band_area;
     bottom_section.y1 = card_coords.y2 - CARD_RADIUS;
 
-    int num_segments = 40;
-    int gap = 3;
     int fill_x_start = (int)(card_coords.x1 + BORDER_THICKNESS + FILL_INSET - 1);
     int fill_x_end = (int)(card_coords.x1 + card_w - BORDER_THICKNESS - FILL_INSET);
     int total_fill_width = fill_x_end - fill_x_start;
-    int total_gap = (num_segments - 1) * gap;
-    int seg_w = (total_fill_width - total_gap) / num_segments;
 
-    for (int seg = 0; seg < num_segments; seg++) {
-        int seg_x1 = fill_x_start + seg * (seg_w + gap);
-        int seg_x2 = seg_x1 + seg_w - 1;
-        if (seg == num_segments - 1) seg_x2 = fill_x_end - 1;
+    lv_area_t fill_area;
+    fill_area.x1 = fill_x_start;
+    fill_area.x2 = fill_x_end;
+    fill_area.y1 = fill_y_top;
+    fill_area.y2 = fill_y_bottom;
 
-        float seg_mid = (seg + 0.5f) / num_segments;
+    lv_draw_rect_dsc_t off_dsc;
+    lv_draw_rect_dsc_init(&off_dsc);
+    off_dsc.bg_color = COLOR_SEG_OFF;
+    off_dsc.bg_opa = LV_OPA_COVER;
+    off_dsc.radius = 0;
+    lv_draw_rect(layer, &off_dsc, &fill_area);
 
-        lv_color_t seg_color;
-        if (seg_mid <= active_position) {
-            seg_color = gradient_color(seg_mid);
-        } else {
-            seg_color = COLOR_SEG_OFF;
-        }
+    int active_width = (int)(total_fill_width * active_position);
+    if (active_width > 0) {
+        lv_area_t active_area = fill_area;
+        active_area.x2 = fill_x_start + active_width - 1;
+        if (active_area.x2 > fill_x_end) active_area.x2 = fill_x_end;
 
-        lv_area_t coords;
-        coords.x1 = seg_x1;
-        coords.x2 = seg_x2;
-        coords.y1 = fill_y_top;
-        coords.y2 = fill_y_bottom;
-
-        lv_draw_rect_dsc_t rect_descriptor;
-        lv_draw_rect_dsc_init(&rect_descriptor);
-        rect_descriptor.bg_color = seg_color;
-        rect_descriptor.radius = 2;
-        lv_draw_rect(layer, &rect_descriptor, &coords);
+        lv_draw_rect_dsc_t active_dsc;
+        lv_draw_rect_dsc_init(&active_dsc);
+        active_dsc.bg_color = gradient_color(active_position);
+        active_dsc.bg_opa = LV_OPA_COVER;
+        active_dsc.radius = 0;
+        lv_draw_rect(layer, &active_dsc, &active_area);
     }
 
     lv_draw_rect_dsc_t border_dsc;
