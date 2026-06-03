@@ -34,11 +34,12 @@ static inline lv_color_t get_threshold_color(float value, float warn, float crit
 struct BarGaugeWidgets {
     lv_obj_t *container;
     lv_obj_t *value_label;
+    lv_obj_t *unit_label;
     lv_obj_t *bar;
 };
 
 static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *name,
-                                                float min, float max, const char *unit) {
+                                                 float min, float max, const char *unit) {
     BarGaugeWidgets w = {};
 
     w.container = lv_obj_create(parent);
@@ -54,10 +55,23 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_style_text_color(name_label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(name_label, &orbitron_bold_14, 0);
 
-    w.value_label = lv_label_create(w.container);
+    lv_obj_t *value_row = lv_obj_create(w.container);
+    lv_obj_remove_style_all(value_row);
+    lv_obj_set_size(value_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(value_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(value_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(value_row, 6, 0);
+    lv_obj_clear_flag(value_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    w.value_label = lv_label_create(value_row);
     lv_label_set_text(w.value_label, "");
     lv_obj_set_style_text_color(w.value_label, COLOR_PRIMARY, 0);
     lv_obj_set_style_text_font(w.value_label, &dseg7_classic_bold_20, 0);
+
+    w.unit_label = lv_label_create(value_row);
+    lv_label_set_text(w.unit_label, unit);
+    lv_obj_set_style_text_color(w.unit_label, COLOR_PRIMARY, 0);
+    lv_obj_set_style_text_font(w.unit_label, &orbitron_bold_14, 0);
 
     w.bar = lv_bar_create(w.container);
     lv_obj_set_size(w.bar, LV_PCT(90), 10);
@@ -79,6 +93,7 @@ static inline void update_bar_gauge(BarGaugeWidgets &w, float value, float warn,
     lv_bar_set_value(w.bar, (int32_t)(value * scale), LV_ANIM_ON);
     lv_obj_set_style_bg_color(w.bar, color, LV_PART_INDICATOR);
     lv_obj_set_style_text_color(w.value_label, color, 0);
+    lv_obj_set_style_text_color(w.unit_label, color, 0);
 
     char num_buf[16];
     if (value == (int)value && value >= 100)
@@ -90,7 +105,5 @@ static inline void update_bar_gauge(BarGaugeWidgets &w, float value, float warn,
     else
         lv_snprintf(num_buf, sizeof(num_buf), "%.1f", value);
 
-    char buf[32];
-    lv_snprintf(buf, sizeof(buf), "%s %s", num_buf, unit);
-    lv_label_set_text(w.value_label, buf);
+    lv_label_set_text(w.value_label, num_buf);
 }
