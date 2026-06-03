@@ -10,9 +10,14 @@
 #include "ui/water_temp_gauge.h"
 #include "ui/fuel_gauge.h"
 #include "ui/voltage_gauge.h"
+#include "ui/connecting_screen.h"
 
 #include <string.h>
 #include <stdio.h>
+
+static ConnectingScreen connecting_screen;
+static lv_obj_t *dashboard_screen = nullptr;
+static bool dashboard_active = false;
 
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
@@ -262,20 +267,30 @@ static void update_simulation() {
     fuel_gauge.update(sim_fuel);
 }
 
+static void on_bluetooth_connected(lv_timer_t *timer) {
+    (void)timer;
+    connecting_screen.stop_animation();
+    lv_screen_load(dashboard_screen);
+    dashboard_active = true;
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
     lv_init();
-
     lv_display_t *disp = lv_sdl_window_create(DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
-    create_dashboard(lv_screen_active());
+    dashboard_screen = lv_obj_create(NULL);
+    create_dashboard(dashboard_screen);
 
     // Screenshot mode: --screenshot <rpm> <output.bmp>
     if (argc >= 4 && strcmp(argv[1], "--screenshot") == 0) {
         float screenshot_rpm = (float)atof(argv[2]);
         const char *screenshot_path = argv[3];
+
+        lv_screen_load(dashboard_screen);
+        dashboard_active = true;
 
         rpm_gauge.update(screenshot_rpm);
         speed_gauge.update(80);
@@ -350,8 +365,96 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    // Screenshot-connecting mode: capture the connecting screen
+    if (argc >= 3 && strcmp(argv[1], "--screenshot-connecting") == 0) {
+        const char *screenshot_path = argv[2];
+
+        lv_obj_t *connecting_scr = lv_obj_create(NULL);
+        lv_screen_load(connecting_scr);
+        connecting_screen.create(connecting_scr);
+        connecting_screen.start_animation();
+
+        // Animate a few frames so the triangle is at a nice angle
+        for (int frame = 0; frame < 15; frame++) {
+            lv_timer_handler();
+            lv_delay_ms(16);
+        }
+
+        lv_obj_t *screen = lv_screen_active();
+        lv_draw_buf_t *snapshot = lv_snapshot_take(screen, LV_COLOR_FORMAT_ARGB8888);
+        if (snapshot) {
+            const uint8_t *src = snapshot->data;
+            int width = snapshot->header.w;
+            int height = snapshot->header.h;
+            uint32_t src_stride = snapshot->header.stride;
+
+            int row_size = width * 4;
+            int padding = (4 - (row_size % 4)) % 4;
+            int bmp_row_size = row_size + padding;
+            int data_size = bmp_row_size * height;
+            int file_size = 54 + data_size;
+
+            uint8_t header[54] = {0};
+            header[0] = 'B'; header[1] = 'M';
+            header[2] = file_size & 0xFF;
+            header[3] = (file_size >> 8) & 0xFF;
+            header[4] = (file_size >> 16) & 0xFF;
+            header[5] = (file_size >> 24) & 0xFF;
+            header[10] = 54;
+            header[14] = 40;
+            header[18] = width & 0xFF;
+            header[19] = (width >> 8) & 0xFF;
+            header[22] = height & 0xFF;
+            header[23] = (height >> 8) & 0xFF;
+            header[26] = 1;
+            header[28] = 32;
+            header[34] = data_size & 0xFF;
+            header[35] = (data_size >> 8) & 0xFF;
+            header[38] = 0x13; header[39] = 0x0B;
+            header[42] = 0x13; header[43] = 0x0B;
+
+            FILE *fp = fopen(screenshot_path, "wb");
+            if (fp) {
+                fwrite(header, 1, 54, fp);
+                uint8_t pad_bytes[4] = {0};
+                for (int row = height - 1; row >= 0; row--) {
+                    const uint8_t *row_ptr = src + row * src_stride;
+                    for (int col = 0; col < width; col++) {
+                        uint8_t bgra[4];
+                        bgra[0] = row_ptr[col * 4 + 0];
+                        bgra[1] = row_ptr[col * 4 + 1];
+                        bgra[2] = row_ptr[col * 4 + 2];
+                        bgra[3] = row_ptr[col * 4 + 3];
+                        fwrite(bgra, 1, 4, fp);
+                    }
+                    if (padding) fwrite(pad_bytes, 1, padding, fp);
+                }
+                fclose(fp);
+                printf("Connecting screenshot saved: %s (%dx%d)\n", screenshot_path, width, height);
+            } else {
+                printf("Error: could not open %s for writing\n", screenshot_path);
+            }
+            lv_snapshot_free((lv_image_dsc_t *)snapshot);
+        } else {
+            printf("Error: snapshot failed\n");
+        }
+        return 0;
+    }
+
+    // Normal mode: show connecting screen, then dashboard after simulated BT connection
+    lv_obj_t *connecting_scr = lv_obj_create(NULL);
+    lv_screen_load(connecting_scr);
+    connecting_screen.create(connecting_scr);
+    connecting_screen.start_animation();
+
+    // Simulate BT connection delay. In real firmware, call on_bluetooth_connected()
+    // from the ELMduino/Bluetooth callback when pairing succeeds.
+    lv_timer_create(on_bluetooth_connected, 3000, NULL);
+
     while (1) {
-        update_simulation();
+        if (dashboard_active) {
+            update_simulation();
+        }
         uint32_t time_till_next = lv_timer_handler();
         lv_delay_ms(time_till_next);
     }
