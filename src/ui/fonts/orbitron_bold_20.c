@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 20 px
  * Bpp: 4
- * Opts: --font fonts\Orbitron\static\Orbitron-Bold.ttf -r 0x20-0x7E --size 20 --format lvgl -o src\ui\fonts\orbitron_bold_20.c --bpp 4 --no-compress --lv-font-name orbitron_bold_20
+ * Opts: --font /Users/lucien/Documents/coding/rx8screen/fonts/Orbitron/static/Orbitron-Bold.ttf -r 0x20-0x7E,0xB0 --size 20 --format lvgl -o /Users/lucien/Documents/coding/rx8screen/src/ui/fonts/orbitron_bold_20.c --bpp 4 --no-compress --lv-font-name orbitron_bold_20
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -1222,7 +1222,14 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
 
     /* U+007E "~" */
     0x6e, 0xfb, 0x50, 0x2, 0x8f, 0xff, 0xff, 0xec,
-    0x20, 0x3, 0xae, 0xf9
+    0x20, 0x3, 0xae, 0xf9,
+
+    /* U+00B0 "°" */
+    0x0, 0x14, 0x55, 0x10, 0x0, 0x4f, 0xff, 0xff,
+    0x40, 0xe, 0xff, 0xff, 0xfe, 0x1, 0xff, 0x20,
+    0x2f, 0xf1, 0x1f, 0xf2, 0x2, 0xff, 0x20, 0xff,
+    0x75, 0x7f, 0xf1, 0xb, 0xff, 0xff, 0xfc, 0x0,
+    0x1b, 0xff, 0xfb, 0x10
 };
 
 
@@ -1325,7 +1332,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 7672, .adv_w = 92, .box_w = 6, .box_h = 15, .ofs_x = 0, .ofs_y = 0},
     {.bitmap_index = 7717, .adv_w = 68, .box_w = 3, .box_h = 20, .ofs_x = 1, .ofs_y = -2},
     {.bitmap_index = 7747, .adv_w = 92, .box_w = 5, .box_h = 15, .ofs_x = 1, .ofs_y = 0},
-    {.bitmap_index = 7785, .adv_w = 129, .box_w = 8, .box_h = 3, .ofs_x = 0, .ofs_y = 5}
+    {.bitmap_index = 7785, .adv_w = 129, .box_w = 8, .box_h = 3, .ofs_x = 0, .ofs_y = 5},
+    {.bitmap_index = 7797, .adv_w = 140, .box_w = 9, .box_h = 8, .ofs_x = 0, .ofs_y = 7}
 };
 
 /*---------------------
@@ -1343,6 +1351,10 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
     },
     {
         .range_start = 95, .range_length = 32, .glyph_id_start = 63,
+        .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
+    },
+    {
+        .range_start = 176, .range_length = 1, .glyph_id_start = 95,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };
@@ -1785,7 +1797,7 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
     .cmaps = cmaps,
     .kern_dsc = &kern_pairs,
     .kern_scale = 16,
-    .cmap_num = 2,
+    .cmap_num = 3,
     .bpp = 4,
     .kern_classes = 0,
     .bitmap_format = 0,
