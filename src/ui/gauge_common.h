@@ -10,6 +10,7 @@ static const lv_color_t COLOR_WARN = lv_color_hex(0xFFAA00);
 static const lv_color_t COLOR_CRIT = lv_color_hex(0xFF2222);
 static const lv_color_t COLOR_TRACK = lv_color_hex(0x1A1A1A);
 static const lv_color_t COLOR_ACCENT = lv_color_hex(0x00DDFF);
+static const lv_color_t COLOR_GRID_BORDER = lv_color_hex(0xFF0000);
 
 static inline void style_container(lv_obj_t *obj) {
     lv_obj_set_style_bg_color(obj, COLOR_BG, 0);
@@ -45,7 +46,7 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_size(w.container, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(w.container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(w.container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(w.container, 4, 0);
+    lv_obj_set_style_pad_row(w.container, 12, 0);
     lv_obj_clear_flag(w.container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *name_label = lv_label_create(w.container);
