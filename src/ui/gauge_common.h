@@ -46,7 +46,7 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
     lv_obj_set_size(w.container, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(w.container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(w.container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(w.container, 12, 0);
+    lv_obj_set_style_pad_row(w.container, 20, 0);
     lv_obj_clear_flag(w.container, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *name_label = lv_label_create(w.container);
