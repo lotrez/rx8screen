@@ -11,7 +11,7 @@ static const lv_color_t COLOR_SEG_OFF = lv_color_hex(0x0D1A0D);
 static const lv_color_t COLOR_DIGIT_OFF = lv_color_hex(0x0D1A0D);
 static const lv_color_t COLOR_BORDER = COLOR_GRID_BORDER;
 
-static const int BORDER_THICKNESS = 2;
+static const int BORDER_THICKNESS = 3;
 static const int FILL_INSET = 0;
 
 static lv_color_t gradient_color(float position) {
@@ -117,7 +117,7 @@ static void band_draw_cb(lv_event_t *event) {
     lv_draw_rect_dsc_init(&card_border_dsc);
     card_border_dsc.bg_opa = LV_OPA_TRANSP;
     card_border_dsc.border_color = COLOR_GRID_BORDER;
-    card_border_dsc.border_width = 1;
+    card_border_dsc.border_width = 2;
     card_border_dsc.radius = CARD_RADIUS;
     lv_draw_rect(layer, &card_border_dsc, &card_coords);
 }

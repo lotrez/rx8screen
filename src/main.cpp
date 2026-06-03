@@ -31,7 +31,7 @@ static lv_obj_t *create_card(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(card, lv_color_hex(0x111111), 0);
     lv_obj_set_style_bg_opa(card, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(card, COLOR_GRID_BORDER, 0);
-    lv_obj_set_style_border_width(card, 1, 0);
+    lv_obj_set_style_border_width(card, 2, 0);
     lv_obj_set_style_radius(card, 16, 0);
     lv_obj_set_style_pad_all(card, 6, 0);
     lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
