@@ -10,6 +10,8 @@ void VoltageGauge::create(lv_obj_t *parent) {
 }
 
 void VoltageGauge::update(float volts) {
+    if (volts == cached_volts) return;
+    cached_volts = volts;
     BarGaugeWidgets w = {container, value_label, unit_label, bar};
     update_bar_gauge(w, volts, 14.5f, 11.5f, "V");
 }

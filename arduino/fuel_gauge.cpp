@@ -10,6 +10,8 @@ void FuelGauge::create(lv_obj_t *parent) {
 }
 
 void FuelGauge::update(float percent) {
+    if (percent == cached_fuel) return;
+    cached_fuel = percent;
     BarGaugeWidgets w = {container, value_label, unit_label, bar};
     update_bar_gauge(w, percent, 20.0f, 15.0f, "%");
 }

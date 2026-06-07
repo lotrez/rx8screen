@@ -50,6 +50,9 @@ void SpeedGauge::update(float kmh) {
     if (val > 999) val = 999;
     if (val < 0) val = 0;
 
+    if (val == cached_speed) return;
+    cached_speed = val;
+
     int digits[3];
     digits[0] = (val / 100) % 10;
     digits[1] = (val / 10) % 10;
@@ -58,8 +61,13 @@ void SpeedGauge::update(float kmh) {
     char buf[2] = "0";
     for (int i = 0; i < 3; i++) {
         bool active = (i == 2) || (i == 1 && val >= 10) || (i == 0 && val >= 100);
-        buf[0] = '0' + digits[i];
-        lv_label_set_text(digit_labels[i], buf);
-        lv_obj_set_style_text_color(digit_labels[i], active ? COLOR_PRIMARY : COLOR_DIGIT_OFF, 0);
+
+        if (digits[i] != cached_digits[i] || active != cached_active[i]) {
+            cached_digits[i] = digits[i];
+            cached_active[i] = active;
+            buf[0] = '0' + digits[i];
+            lv_label_set_text(digit_labels[i], buf);
+            lv_obj_set_style_text_color(digit_labels[i], active ? COLOR_PRIMARY : COLOR_DIGIT_OFF, 0);
+        }
     }
 }

@@ -177,13 +177,20 @@ void RpmGauge::create(lv_obj_t *parent) {
 }
 
 void RpmGauge::update(float rpm) {
-    active_t = rpm / RPM_MAX;
-    if (active_t > 1.0f) active_t = 1.0f;
-    if (active_t < 0.0f) active_t = 0.0f;
+    float new_active_t = rpm / RPM_MAX;
+    if (new_active_t > 1.0f) new_active_t = 1.0f;
+    if (new_active_t < 0.0f) new_active_t = 0.0f;
 
     int rpm_value = (int)rpm;
     if (rpm_value > 99999) rpm_value = 99999;
     if (rpm_value < 0) rpm_value = 0;
+
+    // Skip update entirely if nothing changed
+    if (rpm_value == cached_rpm && active_t == new_active_t) return;
+
+    bool active_t_changed = (active_t != new_active_t);
+    active_t = new_active_t;
+    cached_rpm = rpm_value;
 
     int digits[5];
     digits[0] = (rpm_value / 10000) % 10;
@@ -196,15 +203,26 @@ void RpmGauge::update(float rpm) {
     float rpm_position = rpm / RPM_MAX;
     if (rpm_position > 1.0f) rpm_position = 1.0f;
     lv_color_t active_color = gradient_color(rpm_position);
+
+    bool any_digit_changed = false;
     for (int digit = 0; digit < 5; digit++) {
         bool is_active = (digit == 4) || (digit == 3 && rpm_value >= 10)
                        || (digit == 2 && rpm_value >= 100)
                        || (digit == 1 && rpm_value >= 1000)
                        || (digit == 0 && rpm_value >= 10000);
-        digit_buf[0] = '0' + digits[digit];
-        lv_label_set_text(digit_labels[digit], digit_buf);
-        lv_obj_set_style_text_color(digit_labels[digit], is_active ? active_color : COLOR_DIGIT_OFF, 0);
+
+        if (digits[digit] != cached_digits[digit] || is_active != cached_active[digit]) {
+            cached_digits[digit] = digits[digit];
+            cached_active[digit] = is_active;
+            digit_buf[0] = '0' + digits[digit];
+            lv_label_set_text(digit_labels[digit], digit_buf);
+            lv_obj_set_style_text_color(digit_labels[digit], is_active ? active_color : COLOR_DIGIT_OFF, 0);
+            any_digit_changed = true;
+        }
     }
 
-    lv_obj_invalidate(container);
+    // Only invalidate the container if the bar width or any digit changed
+    if (active_t_changed || any_digit_changed) {
+        lv_obj_invalidate(container);
+    }
 }

@@ -90,7 +90,7 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
 static inline void update_bar_gauge(BarGaugeWidgets &w, float value, float warn, float crit,
                                      const char *unit, float scale = 10.0f) {
     lv_color_t color = get_threshold_color(value, warn, crit);
-    lv_bar_set_value(w.bar, (int32_t)(value * scale), LV_ANIM_ON);
+    lv_bar_set_value(w.bar, (int32_t)(value * scale), LV_ANIM_OFF);
     lv_obj_set_style_bg_color(w.bar, color, LV_PART_INDICATOR);
     lv_obj_set_style_text_color(w.value_label, color, 0);
     lv_obj_set_style_text_color(w.unit_label, color, 0);

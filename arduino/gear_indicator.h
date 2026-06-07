@@ -12,4 +12,5 @@ private:
     lv_obj_t *container;
     lv_obj_t *ghost_label;
     lv_obj_t *gear_label;
+    int cached_gear = -1;
 };

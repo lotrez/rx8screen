@@ -292,10 +292,14 @@ void setup() {
 }
 
 void loop() {
+    static uint32_t last_tick = millis();
+    uint32_t now = millis();
+    uint32_t elapsed = now - last_tick;
+    last_tick = now;
+
     if (dashboard_active) {
         update_simulation();
     }
     lv_timer_handler();
-    lv_tick_inc(5);  // Match reference: 5ms timer period
-    delay(5);
+    lv_tick_inc(elapsed);
 }

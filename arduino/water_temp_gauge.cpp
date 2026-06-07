@@ -10,6 +10,8 @@ void WaterTempGauge::create(lv_obj_t *parent) {
 }
 
 void WaterTempGauge::update(float temp) {
+    if (temp == cached_temp) return;
+    cached_temp = temp;
     BarGaugeWidgets w = {container, value_label, unit_label, bar};
     update_bar_gauge(w, temp, 100.0f, 105.0f, "\xC2\xB0""C");
 }

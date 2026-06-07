@@ -23,6 +23,9 @@ void GearIndicator::create(lv_obj_t *parent) {
 }
 
 void GearIndicator::update(int gear) {
+    if (gear == cached_gear) return;
+    cached_gear = gear;
+
     if (gear < 0 || gear > 6) {
         lv_label_set_text(gear_label, "N");
         lv_obj_set_style_text_color(gear_label, COLOR_DIM, 0);
