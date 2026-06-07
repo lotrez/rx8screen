@@ -302,8 +302,10 @@ void loop() {
     if (dashboard_active) {
         update_simulation();
     }
-    lv_timer_handler();
-    delay(1);
+    uint32_t time_till_next = lv_timer_handler();
+    lv_tick_inc(time_till_next);
+    if (time_till_next < 1) time_till_next = 1;
+    delay(time_till_next);
 }
 
 #else

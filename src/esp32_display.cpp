@@ -6,24 +6,15 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
 #include "esp_heap_caps.h"
-#include "freertos/semphr.h"
 
 static const int DISPLAY_H_RES = 1024;
 static const int DISPLAY_V_RES = 600;
 
 static esp_lcd_panel_handle_t rgb_panel = nullptr;
 static lv_display_t *lv_disp = nullptr;
-static SemaphoreHandle_t vsync_sem = nullptr;
-
-static bool on_frame_trans_done(esp_lcd_panel_handle_t panel, esp_lcd_rgb_panel_event_data_t *edata, void *user_ctx) {
-    BaseType_t high_task_awoken = pdFALSE;
-    xSemaphoreGiveFromISR(vsync_sem, &high_task_awoken);
-    return (high_task_awoken == pdTRUE);
-}
 
 static void flush_callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     esp_lcd_panel_draw_bitmap(rgb_panel, area->x1, area->y1, area->x2 + 1, area->y2 + 1, px_map);
-    xSemaphoreTake(vsync_sem, portMAX_DELAY);
     lv_display_flush_ready(disp);
 }
 
@@ -78,9 +69,6 @@ static void init_rgb_panel() {
     panel_config.data_gpio_nums[15] = 40;
 
     panel_config.flags.fb_in_psram = 1;
-    panel_config.on_frame_trans_done = on_frame_trans_done;
-
-    vsync_sem = xSemaphoreCreateBinary();
 
     esp_err_t result = esp_lcd_new_rgb_panel(&panel_config, &rgb_panel);
     if (result != ESP_OK) {
