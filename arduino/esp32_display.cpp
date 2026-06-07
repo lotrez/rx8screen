@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #include "esp32_display.h"
 #include <Arduino.h>
 #include <Wire.h>
@@ -12,27 +10,34 @@ static const int DISPLAY_V_RES = 600;
 
 static esp_lcd_panel_handle_t rgb_panel = nullptr;
 static lv_display_t *lv_disp = nullptr;
+static void *panel_fb = nullptr;
 
-// Full-screen back buffer — we compose the complete frame here from partial flushes,
-// then send it to the display in one draw_bitmap call per frame.
-static uint8_t *back_buffer = nullptr;
-static volatile bool frame_dirty = false;
-static volatile uint32_t flush_calls = 0;
+// Partial mode render buffer: 200 lines in PSRAM (~410KB for 1024-wide RGB565)
+static const int RENDER_BUF_LINES = 200;
+static void *render_buf = nullptr;
 
 static void flush_callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
-    int width = area->x2 - area->x1 + 1;
-    int height = area->y2 - area->y1 + 1;
-
-    // px_map contains a compact rectangle of RGB565 pixels (stride = width * 2).
-    // Copy each row to the correct location in the full-screen back buffer.
-    for (int row = 0; row < height; row++) {
-        int src_offset = row * width * 2;
-        int dst_offset = ((area->y1 + row) * DISPLAY_H_RES + area->x1) * 2;
-        memcpy(back_buffer + dst_offset, px_map + src_offset, width * 2);
+    if (area->x2 < 0 || area->y2 < 0 || area->x1 >= DISPLAY_H_RES || area->y1 >= DISPLAY_V_RES) {
+        lv_display_flush_ready(disp);
+        return;
     }
 
-    frame_dirty = true;
-    flush_calls++;
+    // In PARTIAL mode, LVGL rendered dirty pixels into px_map (render_buf).
+    // Copy just that rectangle to the panel's framebuffer.
+    // The RGB panel driver handles cache coherency.
+    esp_err_t result = esp_lcd_panel_draw_bitmap(
+        rgb_panel,
+        area->x1,
+        area->y1,
+        area->x2 + 1,
+        area->y2 + 1,
+        px_map
+    );
+
+    if (result != ESP_OK) {
+        Serial.printf("draw_bitmap failed: %s\n", esp_err_to_name(result));
+    }
+
     lv_display_flush_ready(disp);
 }
 
@@ -50,8 +55,8 @@ static void init_ch422g() {
 
 static void init_rgb_panel() {
     esp_lcd_rgb_panel_config_t panel_config = {};
-    panel_config.clk_src = LCD_CLK_SRC_PLL240M;
-    panel_config.timings.pclk_hz = 16000000;
+    panel_config.clk_src = LCD_CLK_SRC_DEFAULT;
+    panel_config.timings.pclk_hz = 15000000;   // 15MHz — reference uses this, prevents drift
     panel_config.timings.h_res = DISPLAY_H_RES;
     panel_config.timings.v_res = DISPLAY_V_RES;
     panel_config.timings.hsync_pulse_width = 162;
@@ -62,6 +67,10 @@ static void init_rgb_panel() {
     panel_config.timings.vsync_front_porch = 3;
     panel_config.timings.flags.pclk_active_neg = 1;
     panel_config.data_width = 16;
+    panel_config.bits_per_pixel = 16;
+    panel_config.num_fbs = 1;                  // Single framebuffer for the panel
+    // Bounce buffer: 10 lines in SRAM (reference uses this)
+    panel_config.bounce_buffer_size_px = 10 * DISPLAY_H_RES;
     panel_config.psram_trans_align = 64;
     panel_config.hsync_gpio_num = 46;
     panel_config.vsync_gpio_num = 3;
@@ -89,68 +98,56 @@ static void init_rgb_panel() {
     panel_config.flags.fb_in_psram = 1;
 
     esp_err_t result = esp_lcd_new_rgb_panel(&panel_config, &rgb_panel);
-    if (result != ESP_OK) {
+    if (result != ESP_OK || !rgb_panel) {
         Serial.printf("RGB panel init failed: %s\n", esp_err_to_name(result));
         return;
     }
 
     esp_lcd_panel_reset(rgb_panel);
     esp_lcd_panel_init(rgb_panel);
-    esp_lcd_panel_disp_on_off(rgb_panel, true);
+    // esp_lcd_panel_disp_on_off not supported on RGB panels, skip it
+
+    Serial.printf("RGB panel OK: PCLK=15MHz, bounce=10 lines, num_fbs=1\n");
 }
 
 void esp32_display_init() {
-    Serial.println("Initializing CH422G IO expander...");
+    Serial.println("Init CH422G...");
     init_ch422g();
 
-    Serial.println("Initializing RGB LCD panel...");
+    Serial.println("Init RGB panel...");
     init_rgb_panel();
+    if (!rgb_panel) {
+        Serial.println("FATAL: RGB panel init failed");
+        return;
+    }
+
+    Serial.println("Getting panel framebuffer...");
+    esp_err_t result = esp_lcd_rgb_panel_get_frame_buffer(rgb_panel, 1, &panel_fb);
+    if (result != ESP_OK || !panel_fb) {
+        Serial.printf("FATAL: get_frame_buffer failed: %s\n", esp_err_to_name(result));
+        return;
+    }
+    Serial.printf("Panel framebuffer: %p\n", panel_fb);
+
+    Serial.println("Allocating LVGL render buffer...");
+    size_t render_buf_size = DISPLAY_H_RES * RENDER_BUF_LINES * 2;
+    render_buf = heap_caps_malloc(render_buf_size, MALLOC_CAP_SPIRAM);
+    if (!render_buf) {
+        Serial.println("FATAL: render buffer alloc failed");
+        return;
+    }
+    Serial.printf("Render buffer: %p size=%u bytes (%d lines)\n", render_buf, (unsigned)render_buf_size, RENDER_BUF_LINES);
 
     Serial.println("Creating LVGL display...");
-
-    // Allocate full-screen back buffer (composited frame, sent to display once per frame)
-    const uint32_t back_buf_size = DISPLAY_H_RES * DISPLAY_V_RES * 2;
-    back_buffer = (uint8_t *)heap_caps_malloc(back_buf_size, MALLOC_CAP_SPIRAM);
-    if (!back_buffer) {
-        Serial.println("Failed to allocate back buffer from PSRAM!");
-        return;
-    }
-    memset(back_buffer, 0, back_buf_size);
-
-    // Allocate partial render buffer — 2/3 screen height (682 lines), enough for any
-    // single widget or most combined dirty areas without LVGL having to split.
-    const uint32_t partial_lines = 400;
-    const uint32_t partial_buf_size = DISPLAY_H_RES * partial_lines * 2;
-    uint8_t *partial_buf = (uint8_t *)heap_caps_malloc(partial_buf_size, MALLOC_CAP_SPIRAM);
-    if (!partial_buf) {
-        Serial.println("Failed to allocate partial render buffer from PSRAM!");
-        return;
-    }
-
     lv_disp = lv_display_create(DISPLAY_H_RES, DISPLAY_V_RES);
     lv_display_set_color_format(lv_disp, LV_COLOR_FORMAT_RGB565);
-    lv_display_set_buffers(lv_disp, partial_buf, NULL, partial_buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    lv_display_set_buffers(lv_disp, render_buf, nullptr, render_buf_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(lv_disp, flush_callback);
 
-    Serial.printf("Display initialized: partial buf=%u bytes (%lu lines), back buf=%u bytes\n",
-                  (unsigned)partial_buf_size, (unsigned long)partial_lines, (unsigned)back_buf_size);
-}
-
-// Call this after lv_timer_handler() to push the composited frame to the display.
-bool esp32_display_flush_frame() {
-    if (!frame_dirty) return false;
-
-    esp_lcd_panel_draw_bitmap(rgb_panel, 0, 0, DISPLAY_H_RES, DISPLAY_V_RES, back_buffer);
-    frame_dirty = false;
-    return true;
-}
-
-uint32_t esp32_display_get_flush_count() {
-    return flush_calls;
+    Serial.println("Display initialized OK (PARTIAL mode)");
 }
 
 lv_display_t *esp32_display_get() {
     return lv_disp;
 }
-
-#endif

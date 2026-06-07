@@ -1,6 +1,6 @@
 #include "rpm_gauge.h"
 #include "gauge_common.h"
-#include "fonts/dseg7_fonts.h"
+#include "dseg7_fonts.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

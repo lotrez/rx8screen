@@ -204,6 +204,18 @@ src/
 - Use descriptive variable names — no single or double letter variables (e.g. no `i`, `j`, `x`, `t`, `r`, `g`, `b`). Use names like `strip_index`, `position`, `red`, `green`, `blue`, etc.
 - Exception: LVGL API struct fields and function parameters that require short names (e.g. `coords.x1`) are fine as-is.
 
+## ESP32 Display Mode Rule
+
+**NEVER use `LV_DISPLAY_RENDER_MODE_FULL` on the ESP32 target.**
+
+`FULL` mode forces LVGL to re-render the entire 1024×600 screen (1.2MB) on every single frame. On a 240MHz ESP32-S3 this results in ~1–2 FPS and makes the dashboard unusable.
+
+**Preferred approach:** Use `LV_DISPLAY_RENDER_MODE_DIRECT` with double buffering and a bounce buffer. LVGL renders directly into the panel's PSRAM frame buffers with zero-copy. The flush callback must keep both buffers in sync by copying the just-rendered buffer to the other buffer before calling `lv_display_flush_ready()`. This ensures unchanged pixels don't flash black from initial `calloc` state when the display swaps buffers.
+
+`DIRECT` mode with double buffering does **NOT** inherently flicker. Flicker only occurs if the application fails to synchronize the two frame buffers. The reference project (`lv_port_viewe_7_espidf`) uses this exact setup successfully.
+
+`LV_DISPLAY_RENDER_MODE_PARTIAL` is also viable, but `DIRECT` is preferred for RGB panels because it avoids the per-area `esp_lcd_panel_draw_bitmap()` overhead and tearing issues.
+
 ## Visual Feedback Workflow
 
 **MANDATORY: After EVERY code change to UI files (`src/ui/*.cpp`, `src/ui/*.h`, `src/main.cpp`), you MUST verify the result before telling the user it's done. Never skip verification.**
