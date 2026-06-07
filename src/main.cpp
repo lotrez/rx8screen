@@ -1,8 +1,5 @@
 #include <lvgl.h>
 #include <math.h>
-#include <src/drivers/sdl/lv_sdl_window.h>
-#include <src/draw/snapshot/lv_snapshot.h>
-#include <SDL.h>
 #include "ui/rpm_gauge.h"
 #include "ui/speed_gauge.h"
 #include "ui/gear_indicator.h"
@@ -14,6 +11,15 @@
 
 #include <string.h>
 #include <stdio.h>
+
+#ifdef ESP32
+#include <Arduino.h>
+#include "esp32_display.h"
+#else
+#include <src/drivers/sdl/lv_sdl_window.h>
+#include <src/draw/snapshot/lv_snapshot.h>
+#include <SDL.h>
+#endif
 
 static ConnectingScreen connecting_screen;
 static lv_obj_t *dashboard_screen = nullptr;
@@ -274,6 +280,34 @@ static void on_bluetooth_connected(lv_timer_t *timer) {
     dashboard_active = true;
 }
 
+#ifdef ESP32
+
+void setup() {
+    Serial.begin(115200);
+    delay(500);
+    Serial.println("RX-8 OBD2 Dashboard starting...");
+
+    lv_init();
+    esp32_display_init();
+
+    dashboard_screen = lv_obj_create(NULL);
+    create_dashboard(dashboard_screen);
+    lv_screen_load(dashboard_screen);
+    dashboard_active = true;
+
+    Serial.println("Dashboard ready. Running simulation...");
+}
+
+void loop() {
+    if (dashboard_active) {
+        update_simulation();
+    }
+    lv_timer_handler();
+    delay(1);
+}
+
+#else
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
@@ -374,7 +408,6 @@ int main(int argc, char **argv) {
         connecting_screen.create(connecting_scr);
         connecting_screen.start_animation();
 
-        // Animate a few frames so the triangle is at a nice angle
         for (int frame = 0; frame < 15; frame++) {
             lv_timer_handler();
             lv_delay_ms(16);
@@ -447,8 +480,6 @@ int main(int argc, char **argv) {
     connecting_screen.create(connecting_scr);
     connecting_screen.start_animation();
 
-    // Simulate BT connection delay. In real firmware, call on_bluetooth_connected()
-    // from the ELMduino/Bluetooth callback when pairing succeeds.
     lv_timer_create(on_bluetooth_connected, 3000, NULL);
 
     while (1) {
@@ -461,3 +492,5 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
+#endif

@@ -1271,6 +1271,7 @@
  *==================*/
 
 /** Use SDL to open window on PC and handle mouse and keyboard. */
+#ifndef ESP32
 #define LV_USE_SDL              1
 #if LV_USE_SDL
     #define LV_SDL_INCLUDE_PATH     <SDL.h>
@@ -1280,6 +1281,9 @@
     #define LV_SDL_FULLSCREEN       0    /**< 1: Make the window full screen by default */
     #define LV_SDL_DIRECT_EXIT      1    /**< 1: Exit the application when all SDL windows are closed */
     #define LV_SDL_MOUSEWHEEL_MODE  LV_SDL_MOUSEWHEEL_MODE_ENCODER  /*LV_SDL_MOUSEWHEEL_MODE_ENCODER/CROWN*/
+#endif
+#else
+#define LV_USE_SDL              0
 #endif
 
 /** Use X11 to open window on Linux desktop and handle mouse and keyboard */
