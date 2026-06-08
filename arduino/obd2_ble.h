@@ -25,6 +25,7 @@ public:
     const Obd2Data &get_data() const { return data; }
 
 private:
+    void disconnect();
     enum class State {
         IDLE,
         SCANNING,

@@ -15,6 +15,7 @@
 #include "fuel_gauge.h"
 #include "voltage_gauge.h"
 #include "connecting_screen.h"
+#include "obd2_ble.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -29,6 +30,7 @@ static GearIndicator gear_indicator;
 static WaterTempGauge water_temp_gauge;
 static FuelGauge fuel_gauge;
 static VoltageGauge voltage_gauge;
+static OBD2BLE obd2;
 
 static lv_obj_t *card_rpm;
 static lv_obj_t *card_speed;
@@ -288,6 +290,9 @@ void setup() {
     lv_screen_load(dashboard_screen);
     dashboard_active = true;
 
+    Serial.println("obd2.begin()...");
+    obd2.begin();
+
     Serial.println("=== READY ===");
 }
 
@@ -297,9 +302,37 @@ void loop() {
     uint32_t elapsed = now - last_tick;
     last_tick = now;
 
+    obd2.loop();
+
     if (dashboard_active) {
-        update_simulation();
+        if (obd2.is_connected()) {
+            const Obd2Data &d = obd2.get_data();
+            rpm_gauge.update(d.rpm);
+            speed_gauge.update(d.speed);
+            // Infer gear from speed and RPM
+            int inferred_gear = 0;
+            if (d.speed > 5.0f && d.rpm > 1000.0f) {
+                float best_diff = 999999.0f;
+                for (int g = 0; g < NUM_GEARS; g++) {
+                    float expected_rpm = rpm_for_gear_speed(g, d.speed);
+                    float diff = fabsf(expected_rpm - d.rpm);
+                    if (diff < best_diff) {
+                        best_diff = diff;
+                        inferred_gear = g;
+                    }
+                }
+            } else {
+                inferred_gear = -1;  // Neutral
+            }
+            gear_indicator.update(inferred_gear);
+            water_temp_gauge.update(d.coolant_temp);
+            voltage_gauge.update(d.battery_voltage);
+            fuel_gauge.update(d.fuel_level);
+        } else {
+            update_simulation();
+        }
     }
+
     lv_timer_handler();
     lv_tick_inc(elapsed);
 }

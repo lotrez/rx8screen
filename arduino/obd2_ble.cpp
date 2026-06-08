@@ -96,9 +96,9 @@ bool OBD2BLE::scan_and_connect() {
     bool found = false;
 
     for (int i = 0; i < results.getCount(); i++) {
-        NimBLEAdvertisedDevice dev = results.getDevice(i);
-        if (dev.getName() == DEVICE_NAME) {
-            target_addr = dev.getAddress();
+        const NimBLEAdvertisedDevice *dev = results.getDevice(i);
+        if (dev && dev->getName() == DEVICE_NAME) {
+            target_addr = dev->getAddress();
             found = true;
             Serial.printf("[OBD2] Found %s at %s\n", DEVICE_NAME, target_addr.toString().c_str());
             break;
