@@ -20,21 +20,25 @@ struct Obd2Data {
 class OBD2BLE {
 public:
     void begin();
-    void loop();
-    bool is_connected() const { return state == State::CONNECTED; }
+    void loop();  // Never blocks. One quick state step per call.
+    bool is_connected() const { return state == State::POLLING_IDLE || state == State::POLLING_WAIT; }
     const Obd2Data &get_data() const { return data; }
 
 private:
     void disconnect();
+
     enum class State {
         IDLE,
-        SCANNING,
-        CONNECTING,
-        DISCOVERING,
-        SUBSCRIBING,
-        INIT_ELM,
-        CONNECTED,
-        RECONNECTING
+        SCAN_START,
+        SCAN_WAIT,
+        CONNECT,
+        DISCOVER,
+        SUBSCRIBE,
+        INIT_ELM_SEND,
+        INIT_ELM_WAIT,
+        POLLING_IDLE,
+        POLLING_WAIT,
+        RECONNECT
     };
 
     static constexpr const char *DEVICE_NAME = "VEEPEAK";
@@ -44,9 +48,11 @@ private:
 
     State state = State::IDLE;
     uint32_t state_entered_ms = 0;
-    uint32_t last_poll_ms = 0;
+    uint32_t last_tx_ms = 0;
     int init_step = 0;
     int current_pid_index = 0;
+    bool found_target = false;
+    NimBLEAddress target_addr;
 
     NimBLEClient *client = nullptr;
     NimBLERemoteService *service = nullptr;
@@ -61,20 +67,37 @@ private:
     Obd2Data data;
 
     void set_state(State new_state);
-    bool scan_and_connect();
-    bool discover_service();
-    bool subscribe_notifications();
-    void init_elm327();
-    void poll_next_pid();
+    void step_scan_start();
+    void step_scan_wait();
+    void step_connect();
+    void step_discover();
+    void step_subscribe();
+    void step_init_elm_send();
+    void step_init_elm_wait();
+    void step_polling_idle();
+    void step_polling_wait();
+    void step_reconnect();
+
     void send_command(const char *cmd);
     void on_notify(const uint8_t *data, size_t len);
-    bool wait_for_response(uint32_t timeout_ms);
     void parse_response(const char *response);
 
     static void notify_callback(NimBLERemoteCharacteristic *pChar,
                                  uint8_t *pData, size_t length, bool isNotify);
 
-    // PID rotation table
+    static OBD2BLE *instance;
+
+    static constexpr const char *INIT_CMDS[] = {
+        "ATZ",
+        "ATE0",
+        "ATH0",
+        "ATL0",
+        "ATSP0",
+        "ATST10",
+        "0100",
+    };
+    static constexpr int INIT_CMD_COUNT = sizeof(INIT_CMDS) / sizeof(INIT_CMDS[0]);
+
     static constexpr const char *PID_TABLE[] = {
         "010C",  // RPM
         "010D",  // Speed
