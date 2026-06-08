@@ -1,4 +1,5 @@
 // RX-8 ESP32-S3 OBD2 Dashboard — Arduino entry point
+// Shows connecting screen until BLE OBD2 adapter is linked, then real data only.
 
 #define DISPLAY_WIDTH 1024
 #define DISPLAY_HEIGHT 600
@@ -17,12 +18,9 @@
 #include "connecting_screen.h"
 #include "obd2_ble.h"
 
-#include <string.h>
-#include <stdio.h>
-
 static ConnectingScreen connecting_screen;
 static lv_obj_t *dashboard_screen = nullptr;
-static bool dashboard_active = false;
+static bool showing_dashboard = false;
 
 static RpmGauge rpm_gauge;
 static SpeedGauge speed_gauge;
@@ -98,176 +96,34 @@ static void create_dashboard(lv_obj_t *parent) {
     lv_obj_align(gear_indicator.get_container(), LV_ALIGN_CENTER, 0, 0);
 }
 
-static uint32_t sim_tick = 0;
-
 static const int NUM_GEARS = 6;
 static const float GEAR_RATIO[NUM_GEARS] = {3.542f, 2.242f, 1.625f, 1.250f, 1.000f, 0.818f};
 static const float FINAL_DRIVE = 4.777f;
 static const float TIRE_CIRCUMFERENCE_M = 2.05f;
-static const float SHIFT_RPM = 10500.0f;
-static const float IDLE_RPM = 800.0f;
-static const float REDLINE = 11000.0f;
-
-enum SimPhase {
-    SIM_IDLE,
-    SIM_REV_UP,
-    SIM_SHIFT,
-    SIM_ACCEL,
-    SIM_CRUISE,
-    SIM_DECEL,
-    SIM_BRAKE
-};
-
-static SimPhase sim_phase = SIM_IDLE;
-static int sim_phase_tick = 0;
-static int sim_current_gear = 0;
-static float sim_rpm = IDLE_RPM;
-static float sim_speed = 0.0f;
 
 static float rpm_for_gear_speed(int gear, float speed_kmh) {
-    if (gear < 0 || gear >= NUM_GEARS) return IDLE_RPM;
+    if (gear < 0 || gear >= NUM_GEARS) return 800.0f;
     float wheel_rpm = (speed_kmh / 3.6f) / TIRE_CIRCUMFERENCE_M * 60.0f;
     return wheel_rpm * GEAR_RATIO[gear] * FINAL_DRIVE;
 }
 
-static float speed_for_gear_rpm(int gear, float rpm_val) {
-    if (gear < 0 || gear >= NUM_GEARS) return 0.0f;
-    float wheel_rpm = rpm_val / (GEAR_RATIO[gear] * FINAL_DRIVE);
-    return wheel_rpm * TIRE_CIRCUMFERENCE_M * 3.6f / 60.0f;
-}
-
-static float engine_jitter(float base_rpm, uint32_t tick) {
-    float jitter = sinf(tick * 0.7f) * 15.0f
-                 + sinf(tick * 1.3f) * 10.0f
-                 + sinf(tick * 2.9f) * 5.0f
-                 + sinf(tick * 4.1f) * 3.0f;
-    return base_rpm + jitter;
-}
-
-static void update_simulation() {
-    sim_tick++;
-    sim_phase_tick++;
-
-    float dt = 1.0f / 120.0f;
-
-    switch (sim_phase) {
-        case SIM_IDLE: {
-            sim_rpm = engine_jitter(IDLE_RPM, sim_tick);
-            sim_speed = 0.0f;
-            if (sim_phase_tick > 180) {
-                sim_phase = SIM_REV_UP;
-                sim_phase_tick = 0;
-            }
-            break;
-        }
-        case SIM_REV_UP: {
-            float progress = sim_phase_tick / 90.0f;
-            float target_rpm = IDLE_RPM + (3000.0f - IDLE_RPM) * fminf(progress, 1.0f);
-            sim_rpm = target_rpm + sinf(sim_tick * 3.0f) * 20.0f;
-            sim_speed = 0.0f;
-            if (sim_phase_tick > 90) {
-                sim_phase = SIM_ACCEL;
-                sim_phase_tick = 0;
-                sim_current_gear = 0;
-                sim_rpm = rpm_for_gear_speed(0, 5.0f);
-            }
-            break;
-        }
-        case SIM_SHIFT: {
-            float progress = sim_phase_tick / 18.0f;
-            float rpm_drop = sim_rpm * (1.0f - progress * 0.4f);
-            sim_rpm = rpm_drop + sinf(sim_tick * 8.0f) * 30.0f;
-            if (sim_phase_tick > 18) {
-                sim_phase = SIM_ACCEL;
-                sim_phase_tick = 0;
-            }
-            break;
-        }
-        case SIM_ACCEL: {
-            float rpm_gain = 2800.0f * dt;
-            if (sim_rpm > 6000.0f) rpm_gain *= 0.7f;
-            if (sim_rpm > 8000.0f) rpm_gain *= 0.5f;
-            sim_rpm += rpm_gain + sinf(sim_tick * 6.0f) * 8.0f;
-            sim_speed = speed_for_gear_rpm(sim_current_gear, sim_rpm);
-            if (sim_speed < 3.0f) sim_speed = 3.0f;
-
-            if (sim_rpm >= SHIFT_RPM) {
-                sim_phase = SIM_SHIFT;
-                sim_phase_tick = 0;
-                sim_current_gear++;
-                if (sim_current_gear >= NUM_GEARS) {
-                    sim_current_gear = NUM_GEARS - 1;
-                    sim_phase = SIM_CRUISE;
-                    sim_phase_tick = 0;
-                } else {
-                    sim_rpm = rpm_for_gear_speed(sim_current_gear, sim_speed);
-                    if (sim_rpm < IDLE_RPM) sim_rpm = IDLE_RPM;
-                }
-            }
-            break;
-        }
-        case SIM_CRUISE: {
-            sim_rpm = engine_jitter(sim_rpm, sim_tick);
-            if (sim_phase_tick > 300) {
-                sim_phase = SIM_DECEL;
-                sim_phase_tick = 0;
-            }
-            break;
-        }
-        case SIM_DECEL: {
-            sim_speed -= 40.0f * dt;
-            if (sim_speed < 60.0f) sim_speed -= 20.0f * dt;
-            if (sim_speed < 20.0f) {
-                sim_phase = SIM_BRAKE;
-                sim_phase_tick = 0;
-            }
-            sim_rpm = rpm_for_gear_speed(sim_current_gear, sim_speed);
-            if (sim_rpm < IDLE_RPM) {
-                sim_rpm = engine_jitter(IDLE_RPM, sim_tick);
-                if (sim_current_gear > 0) sim_current_gear--;
-            }
-            break;
-        }
-        case SIM_BRAKE: {
-            sim_speed -= 80.0f * dt;
-            if (sim_speed < 0.0f) {
-                sim_speed = 0.0f;
-                sim_rpm = engine_jitter(IDLE_RPM, sim_tick);
-                if (sim_phase_tick > 60) {
-                    sim_phase = SIM_IDLE;
-                    sim_phase_tick = 0;
-                }
-            } else {
-                sim_rpm = rpm_for_gear_speed(0, sim_speed);
-                if (sim_rpm < IDLE_RPM) sim_rpm = engine_jitter(IDLE_RPM, sim_tick);
-            }
-            break;
-        }
+static void show_connecting_screen() {
+    if (showing_dashboard) {
+        lv_screen_load(connecting_screen.get_screen());
+        showing_dashboard = false;
     }
+}
 
-    if (sim_rpm < 500.0f) sim_rpm = 500.0f;
-    if (sim_rpm > REDLINE + 500.0f) sim_rpm = REDLINE + 500.0f;
-
-    rpm_gauge.update(sim_rpm);
-    speed_gauge.update(sim_speed);
-    gear_indicator.update(sim_current_gear);
-
-    float sim_water_temp = 82.0f + sim_phase_tick * 0.02f;
-    if (sim_water_temp > 105.0f) sim_water_temp = 105.0f - (sim_water_temp - 105.0f) * 0.5f;
-    if (sim_water_temp > 110.0f) sim_water_temp = 110.0f;
-    water_temp_gauge.update(sim_water_temp);
-
-    float sim_voltage = 12.8f + (sim_rpm > 1000.0f ? 1.4f : 0.0f) + sinf(sim_tick * 0.05f) * 0.2f;
-    voltage_gauge.update(sim_voltage);
-
-    float sim_fuel = 72.0f - sim_tick * 0.005f;
-    if (sim_fuel < 5.0f) sim_fuel = 5.0f;
-    fuel_gauge.update(sim_fuel);
+static void show_dashboard() {
+    if (!showing_dashboard) {
+        lv_screen_load(dashboard_screen);
+        showing_dashboard = true;
+    }
 }
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) { ; }  // Wait for serial port
+    while (!Serial) { ; }
     delay(1000);
     Serial.println("====================");
     Serial.println("RX-8 Dashboard v3.1");
@@ -284,11 +140,16 @@ void setup() {
         while (1) { delay(1000); }
     }
 
-    Serial.println("create_dashboard()...");
+    Serial.println("create connecting screen...");
+    lv_obj_t *connecting_root = lv_obj_create(NULL);
+    connecting_screen.create(connecting_root);
+    connecting_screen.start_animation();
+    lv_screen_load(connecting_root);
+    showing_dashboard = false;
+
+    Serial.println("create dashboard (hidden)...");
     dashboard_screen = lv_obj_create(NULL);
     create_dashboard(dashboard_screen);
-    lv_screen_load(dashboard_screen);
-    dashboard_active = true;
 
     Serial.println("obd2.begin()...");
     obd2.begin();
@@ -304,33 +165,32 @@ void loop() {
 
     obd2.loop();
 
-    if (dashboard_active) {
-        if (obd2.is_connected()) {
-            const Obd2Data &d = obd2.get_data();
-            rpm_gauge.update(d.rpm);
-            speed_gauge.update(d.speed);
-            // Infer gear from speed and RPM
-            int inferred_gear = 0;
-            if (d.speed > 5.0f && d.rpm > 1000.0f) {
-                float best_diff = 999999.0f;
-                for (int g = 0; g < NUM_GEARS; g++) {
-                    float expected_rpm = rpm_for_gear_speed(g, d.speed);
-                    float diff = fabsf(expected_rpm - d.rpm);
-                    if (diff < best_diff) {
-                        best_diff = diff;
-                        inferred_gear = g;
-                    }
+    if (obd2.is_connected()) {
+        show_dashboard();
+
+        const Obd2Data &d = obd2.get_data();
+        rpm_gauge.update(d.rpm);
+        speed_gauge.update(d.speed);
+
+        int inferred_gear = -1;
+        if (d.speed > 5.0f && d.rpm > 1000.0f) {
+            float best_diff = 999999.0f;
+            for (int g = 0; g < NUM_GEARS; g++) {
+                float expected_rpm = rpm_for_gear_speed(g, d.speed);
+                float diff = fabsf(expected_rpm - d.rpm);
+                if (diff < best_diff) {
+                    best_diff = diff;
+                    inferred_gear = g;
                 }
-            } else {
-                inferred_gear = -1;  // Neutral
             }
-            gear_indicator.update(inferred_gear);
-            water_temp_gauge.update(d.coolant_temp);
-            voltage_gauge.update(d.battery_voltage);
-            fuel_gauge.update(d.fuel_level);
-        } else {
-            update_simulation();
         }
+        gear_indicator.update(inferred_gear);
+
+        water_temp_gauge.update(d.coolant_temp);
+        voltage_gauge.update(d.battery_voltage);
+        fuel_gauge.update(d.fuel_level);
+    } else {
+        show_connecting_screen();
     }
 
     lv_timer_handler();
