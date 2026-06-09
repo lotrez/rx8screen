@@ -129,16 +129,7 @@ void setup() {
     Serial.println("RX-8 Dashboard v3.1");
     Serial.println("====================");
 
-    // Init BLE and connect BEFORE display — same as working example
-    Serial.println("obd2.begin()...");
-    obd2.begin();
-
-    for (int attempt = 0; attempt < 3; attempt++) {
-        Serial.printf("Connect attempt %d/3\n", attempt + 1);
-        if (obd2.connect_blocking()) break;
-        delay(3000);
-    }
-
+    // ─── 1. Init display first so user sees something ──────────
     Serial.println("lv_init()...");
     lv_init();
 
@@ -157,6 +148,24 @@ void setup() {
     lv_screen_load(connecting_root);
     showing_dashboard = false;
 
+    // Flush to display so user sees the screen before BLE blocks
+    for (int i = 0; i < 3; i++) {
+        lv_timer_handler();
+        lv_tick_inc(5);
+        delay(5);
+    }
+
+    // ─── 2. Blocking BLE scan + connect (screen freezes here) ──
+    Serial.println("obd2.begin()...");
+    obd2.begin();
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+        Serial.printf("Connect attempt %d/3\n", attempt + 1);
+        if (obd2.connect_blocking()) break;
+        delay(3000);
+    }
+
+    // ─── 3. Create dashboard (hidden until connected) ────────────
     Serial.println("create dashboard (hidden)...");
     dashboard_screen = lv_obj_create(NULL);
     create_dashboard(dashboard_screen);

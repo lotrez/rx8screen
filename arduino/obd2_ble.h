@@ -34,6 +34,8 @@ private:
     State state = State::IDLE;
     uint32_t state_entered_ms = 0;
     int current_pid_index = 0;
+    uint32_t _last_pid_time = 0;
+    uint32_t _last_slow_pid_time = 0;
 
     NimBLEAdvertisedDevice *obd_device = nullptr;
     NimBLEClient *client = nullptr;

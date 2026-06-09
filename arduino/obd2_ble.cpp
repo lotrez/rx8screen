@@ -283,11 +283,12 @@ const char *OBD2BLE::get_state_name() const {
 }
 
 // ─── Polling ──────────────────────────────────────────────────────
+// Fast PIDs (index 0-1): RPM, Speed — polled every 80ms
+// Slow PIDs (index 2-4): Coolant, Battery, Fuel — polled every 1000ms
 
 static char _poll_resp[256];
 static uint32_t _poll_cmd_sent_ms = 0;
 static bool _poll_cmd_in_flight = false;
-static uint32_t _last_pid_time = 0;
 
 void OBD2BLE::step_polling() {
     if (!client || !client->isConnected()) {
@@ -296,28 +297,37 @@ void OBD2BLE::step_polling() {
         return;
     }
 
-    // Small delay between PIDs to avoid adapter overload
-    if (millis() - _last_pid_time < 150) return;
-
-    if (!_poll_cmd_in_flight) {
-        send_command(PID_TABLE[current_pid_index]);
-        _poll_cmd_sent_ms = millis();
-        _poll_cmd_in_flight = true;
+    if (_poll_cmd_in_flight) {
+        if (read_response(_poll_resp, sizeof(_poll_resp), true)) {
+            parse_response(_poll_resp);
+            _poll_cmd_in_flight = false;
+            _last_pid_time = millis();
+        } else if (millis() - _poll_cmd_sent_ms > 500) {
+            _poll_cmd_in_flight = false;
+            _last_pid_time = millis();
+        }
         return;
     }
 
-    if (read_response(_poll_resp, sizeof(_poll_resp), true)) {
-        parse_response(_poll_resp);
+    // Not in flight — decide what to send next
+    uint32_t now = millis();
+    if (now - _last_pid_time < 80) return;  // min 80ms gap
+
+    bool is_slow = (current_pid_index >= 2);
+    if (is_slow && (now - _last_slow_pid_time < 1000)) {
+        // Skip this slow PID — not enough time passed
         current_pid_index++;
         if (current_pid_index >= PID_COUNT) current_pid_index = 0;
-        _poll_cmd_in_flight = false;
-        _last_pid_time = millis();
-    } else if (millis() - _poll_cmd_sent_ms > 500) {
-        current_pid_index++;
-        if (current_pid_index >= PID_COUNT) current_pid_index = 0;
-        _poll_cmd_in_flight = false;
-        _last_pid_time = millis();
+        return;
     }
+
+    send_command(PID_TABLE[current_pid_index]);
+    if (is_slow) _last_slow_pid_time = now;
+
+    current_pid_index++;
+    if (current_pid_index >= PID_COUNT) current_pid_index = 0;
+    _poll_cmd_sent_ms = now;
+    _poll_cmd_in_flight = true;
 }
 
 // ─── Reconnect ───────────────────────────────────────────────────
