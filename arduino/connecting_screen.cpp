@@ -120,7 +120,13 @@ void ConnectingScreen::create(lv_obj_t *parent) {
     lv_label_set_text(label, "CONNECTING");
     lv_obj_set_style_text_color(label, COLOR_DIM, 0);
     lv_obj_set_style_text_font(label, &orbitron_bold_24, 0);
-    lv_obj_align_to(label, triangle_obj, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 60);
+
+    status_label = lv_label_create(screen);
+    lv_label_set_text(status_label, "BLE INIT");
+    lv_obj_set_style_text_color(status_label, COLOR_DIM, 0);
+    lv_obj_set_style_text_font(status_label, &orbitron_bold_14, 0);
+    lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 100);
 }
 
 void ConnectingScreen::start_animation() {
@@ -132,5 +138,11 @@ void ConnectingScreen::stop_animation() {
     if (timer) {
         lv_timer_delete(timer);
         timer = nullptr;
+    }
+}
+
+void ConnectingScreen::set_status(const char *text) {
+    if (status_label) {
+        lv_label_set_text(status_label, text);
     }
 }

@@ -120,6 +120,17 @@ The RX-8 supports standard OBD2 PIDs. These are the most useful for a dash displ
 - If connection is unreliable, try 38400 baud instead of 115200
 - Use the ELM327's MAC address instead of device name "OBDII" for more reliable Bluetooth pairing on ESP32
 
+### BLE OBD2 Integration
+
+The project includes a fully working BLE OBD2 scanner for the **Veepeak OBDCheck BLE** adapter (ELM327 v1.5) using **NimBLE-Arduino** on ESP32-S3. See `bluetooth/README.md` for:
+- BLE service/characteristic UUIDs (`0xFFF0`/`0xFFF1`/`0xFFF2`)
+- ELM327 initialization sequence and command format
+- PID decoder formulas and reference table
+- Speed optimization techniques (`ATST`, fast mode, no-delay loops)
+- Troubleshooting guide for common connection issues
+
+Also see `bluetooth/bluetooth_example.cpp` for a minimal standalone sketch that benchmarks PID polling speed.
+
 ## Development Workflow
 
 ### Phase 1: UI Development (No Hardware Needed)

@@ -129,6 +129,16 @@ void setup() {
     Serial.println("RX-8 Dashboard v3.1");
     Serial.println("====================");
 
+    // Init BLE and connect BEFORE display — same as working example
+    Serial.println("obd2.begin()...");
+    obd2.begin();
+
+    for (int attempt = 0; attempt < 3; attempt++) {
+        Serial.printf("Connect attempt %d/3\n", attempt + 1);
+        if (obd2.connect_blocking()) break;
+        delay(3000);
+    }
+
     Serial.println("lv_init()...");
     lv_init();
 
@@ -150,9 +160,6 @@ void setup() {
     Serial.println("create dashboard (hidden)...");
     dashboard_screen = lv_obj_create(NULL);
     create_dashboard(dashboard_screen);
-
-    Serial.println("obd2.begin()...");
-    obd2.begin();
 
     Serial.println("=== READY ===");
 }
@@ -191,6 +198,14 @@ void loop() {
         fuel_gauge.update(d.fuel_level);
     } else {
         show_connecting_screen();
+        const char *detail = obd2.get_status_detail();
+        if (detail && detail[0]) {
+            char buf[80];
+            snprintf(buf, sizeof(buf), "%s | %s", obd2.get_state_name(), detail);
+            connecting_screen.set_status(buf);
+        } else {
+            connecting_screen.set_status(obd2.get_state_name());
+        }
     }
 
     lv_timer_handler();
