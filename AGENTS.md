@@ -210,6 +210,11 @@ src/
 └── warnings.h                # Threshold definitions for alerts
 ```
 
+## Git Rules
+
+- **NEVER run `git commit`, `git push`, or any git mutation without explicit user permission.** Always ask for confirmation first, even if the user has confirmed earlier in the conversation.
+- Do not update `.gitignore` or create README/AGENTS files unless explicitly asked.
+
 ## Code Style
 
 - Use descriptive variable names — no single or double letter variables (e.g. no `i`, `j`, `x`, `t`, `r`, `g`, `b`). Use names like `strip_index`, `position`, `red`, `green`, `blue`, etc.

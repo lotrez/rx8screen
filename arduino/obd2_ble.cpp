@@ -30,7 +30,7 @@ bool OBD2BLE::connect_blocking() {
     pScan->setInterval(100);
     pScan->setWindow(99);
 
-    NimBLEScanResults results = pScan->getResults(15 * 1000);
+    NimBLEScanResults results = pScan->getResults(5 * 1000);
 
     obd_device = nullptr;
     for (int i = 0; i < results.getCount(); i++) {
@@ -264,6 +264,7 @@ void OBD2BLE::set_state(State new_state) {
 void OBD2BLE::loop() {
     switch (state) {
         case State::IDLE: break;
+        case State::SCAN_START: step_scan_start(); break;
         case State::POLLING: step_polling(); break;
         case State::RECONNECT: step_reconnect(); break;
     }
@@ -280,6 +281,14 @@ const char *OBD2BLE::get_state_name() const {
         case State::RECONNECT: return "RECONNECTING";
     }
     return "UNKNOWN";
+}
+
+// ─── Scan ────────────────────────────────────────────────────────
+
+void OBD2BLE::step_scan_start() {
+    if (!connect_blocking()) {
+        set_state(State::RECONNECT);
+    }
 }
 
 // ─── Polling ──────────────────────────────────────────────────────
@@ -337,7 +346,7 @@ void OBD2BLE::step_reconnect() {
     if (millis() - state_entered_ms > 3000) {
         status_detail[0] = '\0';
         disconnect();
-        set_state(State::IDLE);
+        set_state(State::SCAN_START);
     }
 }
 
@@ -451,7 +460,13 @@ void OBD2BLE::parse_response(const char *raw) {
         case 0x0D: if (count >= 3) data.speed = bytes[2]; break;
         case 0x05: if (count >= 3) data.coolant_temp = bytes[2] - 40.0f; break;
         case 0x2F: if (count >= 3) data.fuel_level = bytes[2] * 100.0f / 255.0f; break;
-        case 0x42: if (count >= 3) data.battery_voltage = (bytes[2] * 256 + bytes[3]) / 1000.0f; break;
+        case 0x42:
+            if (count >= 4) {
+                data.battery_voltage = (bytes[2] * 256 + bytes[3]) / 1000.0f;
+            } else {
+                Serial.printf("[OBD2] 0142 bad count=%d raw='%s'\n", count, raw);
+            }
+            break;
     }
 }
 

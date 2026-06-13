@@ -27,6 +27,7 @@ private:
 
     enum class State {
         IDLE,
+        SCAN_START,
         POLLING,
         RECONNECT
     };
@@ -53,6 +54,7 @@ private:
     void set_state(State new_state);
     bool init_elm_blocking();
     bool send_cmd_blocking(const char *cmd, bool fast, char *out = nullptr, size_t out_len = 0);
+    void step_scan_start();
     void step_polling();
     void step_reconnect();
 
