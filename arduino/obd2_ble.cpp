@@ -71,6 +71,11 @@ bool OBD2BLE::connect_blocking() {
         return false;
     }
 
+    // Request low-latency BLE connection params (7.5–15 ms interval).
+    // The default interval can be 30–100 ms, which adds a full round-trip
+    // of latency to every PID command/response cycle.
+    client->updateConnParams(6, 12, 0, 500);
+
     Serial.println("[OBD2] Connected OK");
     data.connected = true;
 
@@ -283,8 +288,8 @@ const char *OBD2BLE::get_state_name() const {
 }
 
 // ─── Polling ──────────────────────────────────────────────────────
-// Fast PIDs (index 0-1): RPM, Speed — polled every 80ms
-// Slow PIDs (index 2-4): Coolant, Battery, Fuel — polled every 1000ms
+// Fast PIDs (index 0-1): RPM, Speed — settle POLL_GAP_FAST_MS between commands
+// Slow PIDs (index 2-4): Coolant, Battery, Fuel — polled every POLL_SLOW_INTERVAL_MS
 
 static char _poll_resp[256];
 static uint32_t _poll_cmd_sent_ms = 0;
@@ -302,19 +307,21 @@ void OBD2BLE::step_polling() {
             parse_response(_poll_resp);
             _poll_cmd_in_flight = false;
             _last_pid_time = millis();
-        } else if (millis() - _poll_cmd_sent_ms > 500) {
+        } else if (millis() - _poll_cmd_sent_ms > POLL_RESPONSE_TIMEOUT_MS) {
             _poll_cmd_in_flight = false;
             _last_pid_time = millis();
         }
         return;
     }
 
-    // Not in flight — decide what to send next
+    // Not in flight — decide what to send next.
+    // The in-flight flag already guarantees the previous response completed;
+    // this gap is just settle time for the BLE stack between write and notify.
     uint32_t now = millis();
-    if (now - _last_pid_time < 80) return;  // min 80ms gap
+    if (now - _last_pid_time < POLL_GAP_FAST_MS) return;
 
     bool is_slow = (current_pid_index >= 2);
-    if (is_slow && (now - _last_slow_pid_time < 1000)) {
+    if (is_slow && (now - _last_slow_pid_time < POLL_SLOW_INTERVAL_MS)) {
         // Skip this slow PID — not enough time passed
         current_pid_index++;
         if (current_pid_index >= PID_COUNT) current_pid_index = 0;

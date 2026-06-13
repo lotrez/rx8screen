@@ -1,11 +1,13 @@
 #pragma once
 
 #include <lvgl.h>
+#include "value_tween.h"
 
 class SpeedGauge {
 public:
     void create(lv_obj_t *parent);
     void update(float kmh);
+    void tick();
     lv_obj_t *get_container() { return container; }
 
 private:
@@ -13,7 +15,7 @@ private:
     lv_obj_t *ghost_labels[3] = {};
     lv_obj_t *digit_labels[3] = {};
     lv_obj_t *unit_label = nullptr;
-    int cached_speed = -1;
+    ValueTween tween;
     int cached_digits[3] = {-1, -1, -1};
     bool cached_active[3] = {false, false, false};
 };

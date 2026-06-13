@@ -44,8 +44,8 @@ private:
     NimBLERemoteCharacteristic *notify_char = nullptr;
 
     String response_buf;
-    bool response_complete = false;
-    bool response_has_data = false;
+    volatile bool response_complete = false;
+    volatile bool response_has_data = false;
 
     char status_detail[64];
     Obd2Data data;
@@ -75,4 +75,11 @@ private:
         "012F",   // Fuel Tank Level
     };
     static constexpr int PID_COUNT = sizeof(PID_TABLE) / sizeof(PID_TABLE[0]);
+
+    // Polling timing (ms) — tuned for Veepeak BLE adapter.
+    // The _poll_cmd_in_flight flag already guarantees no command overlap;
+    // these gaps are just settle time on top of the ELM327's own latency.
+    static constexpr uint32_t POLL_GAP_FAST_MS = 15;     // min settle between consecutive PID commands (was hardcoded 80)
+    static constexpr uint32_t POLL_RESPONSE_TIMEOUT_MS = 200;  // per-PID response timeout before giving up (was 500)
+    static constexpr uint32_t POLL_SLOW_INTERVAL_MS = 1000;    // slow PID (coolant/battery/fuel) refresh interval
 };

@@ -46,12 +46,15 @@ void SpeedGauge::create(lv_obj_t *parent) {
 }
 
 void SpeedGauge::update(float kmh) {
-    int val = (int)kmh;
+    tween.set(kmh);
+}
+
+void SpeedGauge::tick() {
+    if (!tween.step(8.0f)) return;
+
+    int val = (int)tween.current;
     if (val > 999) val = 999;
     if (val < 0) val = 0;
-
-    if (val == cached_speed) return;
-    cached_speed = val;
 
     int digits[3];
     digits[0] = (val / 100) % 10;

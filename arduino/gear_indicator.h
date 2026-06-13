@@ -9,8 +9,8 @@ public:
     lv_obj_t *get_container() { return container; }
 
 private:
-    lv_obj_t *container;
-    lv_obj_t *ghost_label;
-    lv_obj_t *gear_label;
+    lv_obj_t *container = nullptr;
+    lv_obj_t *ghost_label = nullptr;
+    lv_obj_t *gear_label = nullptr;
     int cached_gear = -1;
 };

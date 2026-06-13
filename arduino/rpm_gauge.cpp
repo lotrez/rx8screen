@@ -177,6 +177,13 @@ void RpmGauge::create(lv_obj_t *parent) {
 }
 
 void RpmGauge::update(float rpm) {
+    tween.set(rpm);
+}
+
+void RpmGauge::tick() {
+    if (!tween.step(10.0f)) return;
+
+    float rpm = tween.current;
     float new_active_t = rpm / RPM_MAX;
     if (new_active_t > 1.0f) new_active_t = 1.0f;
     if (new_active_t < 0.0f) new_active_t = 0.0f;
@@ -185,12 +192,8 @@ void RpmGauge::update(float rpm) {
     if (rpm_value > 99999) rpm_value = 99999;
     if (rpm_value < 0) rpm_value = 0;
 
-    // Skip update entirely if nothing changed
-    if (rpm_value == cached_rpm && active_t == new_active_t) return;
-
     bool active_t_changed = (active_t != new_active_t);
     active_t = new_active_t;
-    cached_rpm = rpm_value;
 
     int digits[5];
     digits[0] = (rpm_value / 10000) % 10;
@@ -221,7 +224,6 @@ void RpmGauge::update(float rpm) {
         }
     }
 
-    // Only invalidate the container if the bar width or any digit changed
     if (active_t_changed || any_digit_changed) {
         lv_obj_invalidate(container);
     }
