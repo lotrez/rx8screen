@@ -1,17 +1,14 @@
 #pragma once
 
 #include <lvgl.h>
+#include "gauge_common.h"
 
 class VoltageGauge {
 public:
     void create(lv_obj_t *parent);
     void update(float volts);
-    lv_obj_t *get_container() { return container; }
+    lv_obj_t *get_container() { return widgets.container; }
 
 private:
-    lv_obj_t *container = nullptr;
-    lv_obj_t *value_label = nullptr;
-    lv_obj_t *unit_label = nullptr;
-    lv_obj_t *bar = nullptr;
-    float cached_volts = -999.0f;
+    BarGaugeWidgets widgets;
 };

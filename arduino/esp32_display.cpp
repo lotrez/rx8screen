@@ -12,8 +12,11 @@ static esp_lcd_panel_handle_t rgb_panel = nullptr;
 static lv_display_t *lv_disp = nullptr;
 static void *panel_fb = nullptr;
 
-// Partial mode render buffer: 200 lines in PSRAM (~410KB for 1024-wide RGB565)
-static const int RENDER_BUF_LINES = 200;
+// Partial mode render buffer: 50 lines in internal SRAM (~100KB).
+// Internal SRAM has ~12x the bandwidth of OPI PSRAM, making both LVGL's
+// software rendering and the flush_callback copy significantly faster.
+// 50 lines is enough for any single gauge update; LVGL splits larger areas.
+static const int RENDER_BUF_LINES = 50;
 static void *render_buf = nullptr;
 
 static void flush_callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
@@ -131,12 +134,23 @@ void esp32_display_init() {
 
     Serial.println("Allocating LVGL render buffer...");
     size_t render_buf_size = DISPLAY_H_RES * RENDER_BUF_LINES * 2;
-    render_buf = heap_caps_malloc(render_buf_size, MALLOC_CAP_SPIRAM);
-    if (!render_buf) {
-        Serial.println("FATAL: render buffer alloc failed");
-        return;
+
+    // Try internal SRAM first (DMA-capable, ~12x faster than PSRAM).
+    // Allocated before BLE/WiFi init, so plenty of internal SRAM is available.
+    render_buf = heap_caps_malloc(render_buf_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA);
+    if (render_buf) {
+        Serial.printf("Render buffer: INTERNAL SRAM, %u bytes (%d lines)\n",
+                      (unsigned)render_buf_size, RENDER_BUF_LINES);
+    } else {
+        Serial.println("Internal SRAM alloc failed, falling back to PSRAM");
+        render_buf = heap_caps_malloc(render_buf_size, MALLOC_CAP_SPIRAM);
+        if (!render_buf) {
+            Serial.println("FATAL: render buffer alloc failed");
+            return;
+        }
+        Serial.printf("Render buffer: PSRAM, %u bytes (%d lines)\n",
+                      (unsigned)render_buf_size, RENDER_BUF_LINES);
     }
-    Serial.printf("Render buffer: %p size=%u bytes (%d lines)\n", render_buf, (unsigned)render_buf_size, RENDER_BUF_LINES);
 
     Serial.println("Creating LVGL display...");
     lv_disp = lv_display_create(DISPLAY_H_RES, DISPLAY_V_RES);

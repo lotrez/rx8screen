@@ -36,6 +36,8 @@ struct BarGaugeWidgets {
     lv_obj_t *value_label;
     lv_obj_t *unit_label;
     lv_obj_t *bar;
+    int cached_display_val = -99999;
+    uint32_t cached_color_full = 0;
 };
 
 static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *name,
@@ -90,6 +92,13 @@ static inline BarGaugeWidgets create_bar_gauge(lv_obj_t *parent, const char *nam
 static inline void update_bar_gauge(BarGaugeWidgets &w, float value, float warn, float crit,
                                      const char *unit, float scale = 10.0f) {
     lv_color_t color = get_threshold_color(value, warn, crit);
+
+    // Granularity of what's actually displayed: integer for >=100, 0.1-step for <100
+    int display_val = (value >= 100.0f) ? (int)value : (int)(value * 10.0f);
+    if (display_val == w.cached_display_val && color.full == w.cached_color_full) return;
+    w.cached_display_val = display_val;
+    w.cached_color_full = color.full;
+
     lv_bar_set_value(w.bar, (int32_t)(value * scale), LV_ANIM_OFF);
     lv_obj_set_style_bg_color(w.bar, color, LV_PART_INDICATOR);
     lv_obj_set_style_text_color(w.value_label, color, 0);
