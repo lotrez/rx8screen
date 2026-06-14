@@ -224,7 +224,28 @@ void RpmGauge::tick() {
         }
     }
 
-    if (active_t_changed || any_digit_changed) {
-        lv_obj_invalidate(container);
+    if (active_t_changed) {
+        // Invalidate only the band area, not the full container.
+        // This avoids redrawing the ~177px of digits above the bar while still
+        // correctly refreshing the RPM bar fill and borders.
+        lv_obj_t *card = lv_obj_get_parent(container);
+        if (card) {
+            lv_area_t card_coords;
+            lv_obj_get_coords(card, &card_coords);
+            lv_coord_t card_h = lv_area_get_height(&card_coords);
+            int band_thickness = (int)(card_h * 0.18f);
+
+            lv_area_t band_area;
+            band_area.x1 = card_coords.x1;
+            band_area.x2 = card_coords.x2;
+            band_area.y1 = card_coords.y1 + card_h - band_thickness;
+            band_area.y2 = card_coords.y2;
+
+            lv_obj_invalidate_area(container, &band_area);
+        } else {
+            lv_obj_invalidate(container);
+        }
     }
+    // Digit labels auto-invalidate their own areas via lv_label_set_text()
+    // and lv_obj_set_style_text_color() — no container invalidation needed.
 }

@@ -101,9 +101,11 @@ static void create_dashboard(lv_obj_t *parent) {
 }
 
 static const int NUM_GEARS = 6;
-static const float GEAR_RATIO[NUM_GEARS] = {3.542f, 2.242f, 1.625f, 1.250f, 1.000f, 0.818f};
-static const float FINAL_DRIVE = 4.777f;
-static const float TIRE_CIRCUMFERENCE_M = 2.05f;
+// RX-8 Series 1 6-speed manual gear ratios
+static const float GEAR_RATIO[NUM_GEARS] = {3.760f, 2.269f, 1.520f, 1.133f, 0.892f, 0.744f};
+static const float FINAL_DRIVE = 4.300f;
+// 225/45R18 stock tire: diameter ≈ 25.9 in → circumference ≈ 2.067 m
+static const float TIRE_CIRCUMFERENCE_M = 2.067f;
 
 static float rpm_for_gear_speed(int gear, float speed_kmh) {
     if (gear < 0 || gear >= NUM_GEARS) return 800.0f;
