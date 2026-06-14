@@ -192,7 +192,7 @@ void RpmGauge::tick() {
     if (rpm_value > 99999) rpm_value = 99999;
     if (rpm_value < 0) rpm_value = 0;
 
-    bool active_t_changed = (active_t != new_active_t);
+    bool active_t_changed = (fabsf(active_t - new_active_t) > 0.001f);
     active_t = new_active_t;
 
     int digits[5];

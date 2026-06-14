@@ -210,6 +210,44 @@ src/
 └── warnings.h                # Threshold definitions for alerts
 ```
 
+## Git Rules
+
+**NEVER commit, amend, push, or create PRs unless the user explicitly says to.** No exceptions. Even if you think the work is done, wait for explicit permission.
+
+## Build & Upload (Arduino CLI, NOT PlatformIO)
+
+This project uses **Arduino CLI**, not PlatformIO. The `platformio.ini` file exists for reference but is not used for building or uploading.
+
+### Compile
+
+```bash
+arduino-cli compile \
+  --fqbn esp32:esp32:lolin_s3_pro \
+  --library ~/Documents/Arduino/libraries/lvgl \
+  --library ~/Documents/Arduino/libraries/NimBLE-Arduino \
+  --build-path /Users/lucien/Documents/coding/rx8screen/build \
+  arduino/arduino.ino
+```
+
+### Upload
+
+```bash
+arduino-cli upload \
+  --fqbn esp32:esp32:lolin_s3_pro \
+  -p /dev/cu.usbmodem5B910515391 \
+  --input-dir /Users/lucien/Documents/coding/rx8screen/build \
+  /Users/lucien/Documents/coding/rx8screen/arduino
+```
+
+### Board / Environment
+
+- **Board**: Waveshare ESP32-S3 7B RGB LCD (1024×600), flashed as `esp32:esp32:lolin_s3_pro`
+- **Arduino ESP32 Core**: 3.1.0
+- **LVGL**: 9.5.0 (installed in `~/Documents/Arduino/libraries/lvgl`)
+- **NimBLE-Arduino**: 2.5.0 (installed in `~/Documents/Arduino/libraries/NimBLE-Arduino`)
+- **Serial port**: `/dev/cu.usbmodem5B910515391`
+- **Serial monitor baud**: 115200
+
 ## Code Style
 
 - Use descriptive variable names — no single or double letter variables (e.g. no `i`, `j`, `x`, `t`, `r`, `g`, `b`). Use names like `strip_index`, `position`, `red`, `green`, `blue`, etc.

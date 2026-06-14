@@ -20,7 +20,7 @@
 #include <math.h>
 
 // Uncomment to skip BLE OBD2 and run with simulated driving data.
-// #define SIMULATE_DATA
+#define SIMULATE_DATA
 
 static ConnectingScreen connecting_screen;
 static lv_obj_t *dashboard_screen = nullptr;
@@ -131,6 +131,20 @@ static float    sim_fuel = 72.0f;
 static uint32_t sim_last_ms = 0;
 static uint32_t sim_jitter_tick = 0;
 
+// OBD2 polling rate simulation.
+// Fast PIDs (RPM, Speed) arrive every ~50ms; slow PIDs (coolant, battery, fuel) every ~1s.
+// The driving sim below runs at full resolution; these hold the last "sampled" values
+// so the gauges see the same discrete update cadence as real OBD2 data.
+static const uint32_t SIM_FAST_PID_MS  = 50;
+static const uint32_t SIM_SLOW_PID_MS  = 1000;
+static uint32_t sim_last_fast_ms = 0;
+static uint32_t sim_last_slow_ms = 0;
+static float    sim_out_rpm = 0.0f;
+static float    sim_out_speed = 0.0f;
+static float    sim_out_water = 82.0f;
+static float    sim_out_fuel = 72.0f;
+static float    sim_out_voltage = 12.8f;
+
 static float sim_speed_for_rpm(int gear, float rpm_val) {
     float wheel_rpm = rpm_val / (GEAR_RATIO[gear] * FINAL_DRIVE);
     return wheel_rpm * TIRE_CIRCUMFERENCE_M * 3.6f / 60.0f;
@@ -237,13 +251,28 @@ static Obd2Data simulate_obd() {
     sim_fuel -= 0.002f * dt;
     if (sim_fuel < 5.0f) sim_fuel = 5.0f;
 
+    float sim_voltage = 12.8f + (sim_rpm > 1000.0f ? 1.4f : 0.0f)
+                       + sinf(sim_jitter_tick * 0.05f) * 0.2f;
+
+    // Sample at OBD2 polling rates — gauges see discrete jumps, not continuous values.
+    if (now - sim_last_fast_ms >= SIM_FAST_PID_MS || sim_last_fast_ms == 0) {
+        sim_out_rpm = sim_rpm;
+        sim_out_speed = sim_speed;
+        sim_last_fast_ms = now;
+    }
+    if (now - sim_last_slow_ms >= SIM_SLOW_PID_MS || sim_last_slow_ms == 0) {
+        sim_out_water = sim_water;
+        sim_out_fuel = sim_fuel;
+        sim_out_voltage = sim_voltage;
+        sim_last_slow_ms = now;
+    }
+
     Obd2Data data;
-    data.rpm = sim_rpm;
-    data.speed = sim_speed;
-    data.coolant_temp = sim_water;
-    data.fuel_level = sim_fuel;
-    data.battery_voltage = 12.8f + (sim_rpm > 1000.0f ? 1.4f : 0.0f)
-                         + sinf(sim_jitter_tick * 0.05f) * 0.2f;
+    data.rpm = sim_out_rpm;
+    data.speed = sim_out_speed;
+    data.coolant_temp = sim_out_water;
+    data.fuel_level = sim_out_fuel;
+    data.battery_voltage = sim_out_voltage;
     data.connected = true;
     return data;
 }
