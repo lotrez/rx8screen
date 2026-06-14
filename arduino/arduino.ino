@@ -38,6 +38,14 @@ static lv_obj_t *card_rpm;
 static lv_obj_t *card_speed;
 static lv_obj_t *card_gear;
 
+// 7 gap rectangles for the high-RPM alarm blink. Each covers a strip of the
+// grid padding/gaps between cards. Blinking only invalidates these small
+// areas instead of the full screen.
+static const int ALARM_GAP_COUNT = 7;
+static lv_obj_t *alarm_gaps[ALARM_GAP_COUNT] = {};
+static uint32_t alarm_last_toggle_ms = 0;
+static bool alarm_visible = false;
+
 static lv_obj_t *create_card(lv_obj_t *parent) {
     lv_obj_t *card = lv_obj_create(parent);
     lv_obj_remove_style_all(card);
@@ -54,6 +62,33 @@ static lv_obj_t *create_card(lv_obj_t *parent) {
 static void create_dashboard(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(parent, lv_color_hex(0x0A0A0A), 0);
     lv_obj_set_style_bg_opa(parent, LV_OPA_COVER, 0);
+
+    // High-RPM alarm blink: red rectangles in the gaps between cards.
+    // Laid out to match the 8px padding/gaps of the grid below.
+    // Column math: 1024 - 16 pad - 24 gaps = 984 content; cols 0-2 = 236 each, col 3 = 276.
+    // Row math: 600 - 16 pad - 16 gaps = 568 content; rows 0,2 = 216 each, row 1 = 136.
+    struct GapSpec { int x; int y; int w; int h; };
+    static const GapSpec gap_specs[ALARM_GAP_COUNT] = {
+        {0,   0,   1024, 8},   // top padding
+        {0,   592, 1024, 8},   // bottom padding
+        {0,   8,   8,    584}, // left padding
+        {1016, 8,   8,    584}, // right padding
+        {732, 8,   8,    584}, // vertical divider between col 2 and col 3
+        {8,   224, 724,  8},   // horizontal divider between row 0 and row 1 (cols 0-2)
+        {8,   368, 724,  8},   // horizontal divider between row 1 and row 2 (cols 0-2)
+    };
+    for (int gap_index = 0; gap_index < ALARM_GAP_COUNT; gap_index++) {
+        lv_obj_t *gap = lv_obj_create(parent);
+        lv_obj_remove_style_all(gap);
+        lv_obj_set_pos(gap, gap_specs[gap_index].x, gap_specs[gap_index].y);
+        lv_obj_set_size(gap, gap_specs[gap_index].w, gap_specs[gap_index].h);
+        lv_obj_set_style_bg_color(gap, lv_color_hex(0xFF0000), 0);
+        lv_obj_set_style_bg_opa(gap, LV_OPA_TRANSP, 0);
+        lv_obj_clear_flag(gap, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_clear_flag(gap, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_move_background(gap);
+        alarm_gaps[gap_index] = gap;
+    }
 
     static lv_coord_t col_dsc[] = {LV_GRID_FR(24), LV_GRID_FR(24), LV_GRID_FR(24), LV_GRID_FR(28), LV_GRID_TEMPLATE_LAST};
     static lv_coord_t row_dsc[] = {LV_GRID_FR(38), LV_GRID_FR(24), LV_GRID_FR(38), LV_GRID_TEMPLATE_LAST};
@@ -281,9 +316,35 @@ static Obd2Data simulate_obd() {
 
 #endif // SIMULATE_DATA
 
+static void update_alarm(float rpm) {
+    static const float ALARM_RPM = 9000.0f;
+    static const uint32_t BLINK_PERIOD_MS = 200;
+
+    if (rpm > ALARM_RPM) {
+        uint32_t now = lv_tick_get();
+        if (now - alarm_last_toggle_ms >= BLINK_PERIOD_MS) {
+            alarm_last_toggle_ms = now;
+            alarm_visible = !alarm_visible;
+            for (int gap_index = 0; gap_index < ALARM_GAP_COUNT; gap_index++) {
+                if (alarm_gaps[gap_index]) {
+                    lv_obj_set_style_bg_opa(alarm_gaps[gap_index], alarm_visible ? LV_OPA_70 : LV_OPA_TRANSP, 0);
+                }
+            }
+        }
+    } else if (alarm_visible) {
+        alarm_visible = false;
+        for (int gap_index = 0; gap_index < ALARM_GAP_COUNT; gap_index++) {
+            if (alarm_gaps[gap_index]) {
+                lv_obj_set_style_bg_opa(alarm_gaps[gap_index], LV_OPA_TRANSP, 0);
+            }
+        }
+    }
+}
+
 static void update_all_gauges(const Obd2Data &d) {
     rpm_gauge.update(d.rpm);
     speed_gauge.update(d.speed);
+    update_alarm(d.rpm);
 
     int inferred_gear = -1;
     if (d.speed > 5.0f && d.rpm > 1000.0f) {
